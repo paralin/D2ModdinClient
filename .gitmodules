@@ -1,0 +1,9 @@
+[submodule "metamod-p"]
+	path = metamod-p
+	url = https://github.com/jkivilin/metamod-p.git
+[submodule "d2mpmod/mmsource"]
+	path = d2mpmod/mmsource
+	url = http://github.com/kidovate/mmsource
+[submodule "d2mpmod/hl2sdk-dota"]
+	path = d2mpmod/hl2sdk-dota
+	url = https://github.com/kidovate/hl2sdk-dota
