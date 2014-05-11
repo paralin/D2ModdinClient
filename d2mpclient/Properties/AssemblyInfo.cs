@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("d2moddin client")]
-[assembly: AssemblyDescription("Updates and downloads local mod files for D2Moddin")]
+[assembly: AssemblyTitle("dota2 mod platform client/updater")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Christian Stewart <kidovate@gmail.com>")]
-[assembly: AssemblyProduct("d2moddin")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("d2mp")]
 [assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
