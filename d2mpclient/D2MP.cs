@@ -69,8 +69,10 @@ namespace d2mp
                 p.Kill();
                 log.Debug("Killed Dota 2.");
             }
+
         }
 
+        //Pipe a zip download directly through the decompressor
         static void UnzipFromStream(Stream zipStream, string outFolder)
         {
             ZipInputStream zipInputStream = new ZipInputStream(zipStream);
@@ -79,13 +81,7 @@ namespace d2mp
             {
                 String entryFileName = zipEntry.Name;
                 log.Debug(" --> " + entryFileName);
-                // to remove the folder from the entry:- entryFileName = Path.GetFileName(entryFileName);
-                // Optionally match entrynames against a selection list here to skip as desired.
-                // The unpacked length is available in the zipEntry.Size property.
-
-                byte[] buffer = new byte[4096];     // 4K is optimum
-
-                // Manipulate the output filename here as desired.
+                byte[] buffer = new byte[4096];
                 String fullZipToPath = Path.Combine(outFolder, entryFileName);
                 string directoryName = Path.GetDirectoryName(fullZipToPath);
                 if (directoryName.Length > 0)
@@ -96,9 +92,6 @@ namespace d2mp
 
                 if (Path.GetFileName(fullZipToPath) != String.Empty)
                 {
-                    // Unzip file in buffered chunks. This is just as fast as unpacking to a buffer the full size
-                    // of the file, but does not waste memory.
-                    // The "using" will close the stream even if an exception occurs.
                     using (FileStream streamWriter = File.Create(fullZipToPath))
                     {
                         StreamUtils.Copy(zipInputStream, streamWriter, buffer);
@@ -110,7 +103,6 @@ namespace d2mp
 
         static void UninstallD2MP()
         {
-            //Delete all files 
             var installdir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             ProcessStartInfo info = new ProcessStartInfo("cmd.exe");
             info.Arguments = "/C timeout 3 & Del /s /f /q " + installdir + " & exit";
@@ -365,7 +357,7 @@ namespace d2mp
                 if(Directory.Exists(modDir))
                     Directory.Delete(modDir, true);
                 log.Debug("Setting active mod to "+mod+".");
-                Microsoft.VisualBasic.FileIO.FileSystem.CopyDirectory(Path.Combine(d2mpDir, mod.split('=')[0]), modDir);
+                Microsoft.VisualBasic.FileIO.FileSystem.CopyDirectory(Path.Combine(d2mpDir, mod.Split('=')[0]), modDir);
                 File.WriteAllText(Path.Combine(modDir, "modname.txt"), mod);
                 icon.DisplayBubble("Set active mod to "+mod+"!");
             }
@@ -387,6 +379,7 @@ namespace d2mp
                     log.Debug("Patched file to add d2moddin search path.");
                     if (Dota2Running())
                     {
+                        icon.DisplayBubble("Restarting Dota 2 for you...");
                         KillDota2();
                         LaunchDota2();
                     }
@@ -548,7 +541,6 @@ namespace d2mp
             RegistryKey regKey = Registry.LocalMachine;
             regKey =
                 regKey.OpenSubKey(@"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 570");
-
             if (regKey != null)
             {
                 cachedDotaLocation = regKey.GetValue("InstallLocation").ToString();
