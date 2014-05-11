@@ -16,6 +16,7 @@ The taskbar icon allows the user to see all downloaded addons, uninstall the man
 The launcher simply downloads the latest version of the D2Moddin manager. It is a very light executable that targets all versions of Windows. 
 
 The executable is as simple as possible, and follows this task list:
+
 1. Compare the existing D2Moddin manager version with the latest version (found at the [clientver](http://d2modd.in/clientver) page).
 2. If the latest version is already downloaded, simply launch it.
 3. If an update is required (or it has never been run before), download it and extract the latest version to `%AppData%/D2MP/`, a temporary directory.
