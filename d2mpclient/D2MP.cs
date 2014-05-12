@@ -137,7 +137,8 @@ namespace d2mp
                 if (steamDir == null || dotaDir == null)
                 {
                     log.Fatal("Steam/dota was not found!");
-                    return;
+                    MessageBox.Show("Steam/Dota was not found. Please make sure you have installed it properly or try contacting us at http://d2modd.in/contact");
+                    Application.Exit();
                 }
                 else
                 {
