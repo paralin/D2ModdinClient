@@ -417,7 +417,8 @@ public class D2MP
     {
         var msgParts = (string[])state;
         var address = msgParts[1];
-        SteamCommand("connect/"+address);
+        var port = msgParts[2];
+        SteamCommand("connect/"+address+":"+port);
         log.Debug("Told Steam to connect to "+address+".");
     }
 
