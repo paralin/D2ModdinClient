@@ -586,7 +586,16 @@ namespace d2mp
                     return dir;
                 }
             }
-
+            OpenFileDialog d2dlg = new OpenFileDialog();
+            d2dlg.Title = "Please to help to find your dota.exe";
+            d2dlg.Filter = "steamApps/dota 2 beta/(dota.exe)|dota.exe";
+            if (d2dlg.ShowDialog() == DialogResult.OK)
+            {
+                string mDir = d2dlg.FileName;
+                mDir = mDir.Substring(0, mDir.Length - 8);  // steamApps\common\dota  2 beta\h
+                cachedDotaLocation = mDir;
+                return mDir;
+            }
             return null;
         }
     }
