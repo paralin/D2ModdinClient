@@ -36,7 +36,7 @@ namespace d2mp
 {
     public class D2MP
     {
-        private static string server = "ws://d2modd.in:3005/";
+        private static string server = "ws://ddp.d2modd.in:3005/";
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static WebSocket ws;
         private static string addonsDir;
@@ -48,6 +48,7 @@ namespace d2mp
         public static string ourDir;
         private static string[] modNames = null;
         private static volatile ProcessIcon icon;
+        private static volatile bool isInstalling = false;
 
         static void SteamCommand(string command)
         {
@@ -234,7 +235,7 @@ namespace d2mp
 
                 shutDown = false;
                 int tryCount = 0;
-                while (tryCount < 30 && !shutDown)
+                while (tryCount < 240 && !shutDown)
                 {
                     using (ws = new WebSocket(server))
                     {
@@ -343,7 +344,7 @@ namespace d2mp
             {
                 log.Fatal("Overall error in the program: " + ex);
             }
-            UnmodGameInfo();
+            //UnmodGameInfo();
             Application.Exit();
         }
 
@@ -446,6 +447,12 @@ namespace d2mp
 
         private static void InstallMod(object state)
         {
+            if (isInstalling)
+            {
+                icon.DisplayBubble("Already downloading a mod!");
+                return;
+            }
+            isInstalling = true;
             var msgParts = (string[])state;
             var modp = msgParts[1].Split('=');
             var modname = modp[0];
@@ -461,8 +468,19 @@ namespace d2mp
             //Make the dir again
             Directory.CreateDirectory(targetDir);
             //Stream the ZIP to the folder
-            WebClient client = new WebClient();
-            UnzipFromStream(client.OpenRead(url), targetDir);
+            try
+            {
+                using (WebClient client = new WebClient())
+                {
+                    UnzipFromStream(client.OpenRead(url), targetDir);
+                }
+            }
+            catch (Exception ex)
+            {
+                isInstalling = false;
+                icon.DisplayBubble("Failed to download mod "+modname+".");
+                return;
+            }
             log.Info("Mod installed!");
             icon.DisplayBubble("Mod downloaded successfully: " + modname + ".");
             ws.Send("installedMod:" + modname);
@@ -482,6 +500,7 @@ namespace d2mp
             }
             newArr[modNames.Length] = msgParts[1];
             modNames = newArr;
+            isInstalling = false;
         }
 
         public static void DeleteMods()
