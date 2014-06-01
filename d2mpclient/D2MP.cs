@@ -141,8 +141,10 @@ namespace d2mp
                 dotaDir = steam.FindDota(true);
                 if (steamDir == null || dotaDir == null)
                 {
+                    MessageBox.Show("Please install Dota 2 using your Steam client.");
                     log.Fatal("Steam/dota was not found!");
-                    return;
+                    UnmodGameInfo();
+                    Application.Exit();
                 }
                 else
                 {
@@ -509,7 +511,16 @@ namespace d2mp
 
         public static void ShowModList()
         {
-            string message = "You currently have the following detected mods installed:\n\n" + String.Join(", ", modNames);
+            string mods = String.Join(", ", modNames);
+            string message;
+            if (mods != "")
+            {
+                message = "You currently have the following detected mods installed:\n\n" + String.Join(", ", modNames);
+            }
+            else
+            {
+                message = "You don't have any mods installed.";
+            }
             MessageBox.Show(message, "Installed Mods");
         }
     }
@@ -518,8 +529,7 @@ namespace d2mp
     {
         private string cachedLocation = "";
         private string cachedDotaLocation = "";
-        private static string[] knownLocations = new string[] { @"C:\Steam\", @"C:\Program Files (x86)\Steam\", @"C:\Program Files\Steam\"
-                                                          };
+        private static string[] knownLocations = new string[] { @"C:\Steam\", @"C:\Program Files (x86)\Steam\", @"C:\Program Files\Steam\" };
 
         public SteamFinder()
         {
@@ -550,11 +560,29 @@ namespace d2mp
 
                 if (regKey != null)
                 {
-                    cachedLocation = regKey.GetValue("SteamPath").ToString();
+                    cachedLocation = regKey.GetValue("SteamPath").ToString() + @"\";
                     return cachedLocation;
                 }
 
-                //Search using file search? Eh... Return null.
+                // Try running Steam and get the file location.
+                Process.Start("steam://");
+                int tries = 0;
+                while (tries < 20)
+                {
+                    Process[] processes = Process.GetProcessesByName("STEAM");
+                    if (processes.Length > 0)
+                    {
+                        cachedLocation = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 9);
+                        return cachedLocation;
+
+                    }
+                    else
+                    {
+                        Thread.Sleep(500);
+                        tries++;
+                    }
+                }
+
                 return null;
             }
             else
@@ -573,13 +601,13 @@ namespace d2mp
                 regKey.OpenSubKey(@"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 570");
             if (regKey != null)
             {
-                cachedDotaLocation = regKey.GetValue("InstallLocation").ToString();
+                cachedDotaLocation = regKey.GetValue("InstallLocation").ToString() + @"\";
                 return cachedDotaLocation;
             }
 
             if (steamDir != null)
             {
-                var dir = Path.Combine(steamDir, "steamapps/common/dota 2 beta/");
+                var dir = Path.Combine(steamDir, @"steamapps\common\dota 2 beta\");
                 if (Directory.Exists(dir))
                 {
                     cachedDotaLocation = dir;
@@ -587,6 +615,26 @@ namespace d2mp
                 }
             }
 
+            // Try running Dota 2 and get the file location.
+            Process.Start("steam://rungameid/570");
+            int tries = 0;
+            while (tries < 20)
+            {
+                Process[] processes = Process.GetProcessesByName("DOTA");
+                if (processes.Length > 0)
+                {
+                    cachedLocation = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 8);
+                    // Kill Dota 2 after running
+                    processes[0].Kill();
+                    return cachedLocation;
+
+                }
+                else
+                {
+                    Thread.Sleep(500);
+                    tries++;
+                }
+            }
             return null;
         }
     }

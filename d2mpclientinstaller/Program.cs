@@ -147,7 +147,7 @@ namespace D2MPClientInstaller
                 {
                     infos = client.DownloadString("http://d2modd.in/clientver");
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     ShowError("Failed to download the latest client version information. Check your internet connection!");
                     return;
