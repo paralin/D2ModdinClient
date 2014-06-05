@@ -35,15 +35,15 @@ using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using WebSocketSharp;
+using XSockets.Client40;
+using XSockets.Client40.Common.Event.Arguments;
 
 namespace d2mp
 {
     public class D2MP
     {
-        private static string server = "ws://ddp2.d2modd.in:4000/client";
+        private static string server = "ws://ddp2.d2modd.in:4502/ClientController";
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        private static WebSocket ws;
         private static string addonsDir;
         private static string d2mpDir;
         private static string modDir;
@@ -54,6 +54,8 @@ namespace d2mp
         private static List<ClientCommon.Data.ClientMod> mods = new List<ClientCommon.Data.ClientMod>();
         private static volatile ProcessIcon icon;
         private static volatile bool isInstalling;
+        private static bool hasConnected = true;
+        private static XSocketClient client;
 
         private static void SteamCommand(string command)
         {
@@ -109,6 +111,11 @@ namespace d2mp
                 }
                 zipEntry = zipInputStream.GetNextEntry();
             }
+        }
+
+        static void Send(string json)
+        {
+            client.Send(new TextArgs(json, "data"));
         }
 
         private static void UninstallD2MP()
@@ -230,90 +237,101 @@ namespace d2mp
                 watcher.Deleted += (sender, args) => { shutDown = true; };
                 watcher.EnableRaisingEvents = true;
 
-                shutDown = false;
-                int tryCount = 0;
-                while (tryCount < 240 && !shutDown)
+                client = new XSocketClient(server, "*");
+                bool hasConnected = false;
+                client.OnOpen += (sender, args) =>
                 {
-                    using (ws = new WebSocket(server))
+                    icon.DisplayBubble(hasConnected
+                        ? "Reconnected!"
+                        : "Connected and ready to begin installing mods.");
+                    hasConnected = true;
+
+                    log.Debug("Sending init, version: " + ClientCommon.Version.ClientVersion);
+                    var init = new Init
                     {
-                        ws.OnMessage += (sender, e) =>
-                                        {
-                                            log.Debug("server: " + e.Data);
-                                            JObject msg = JObject.Parse(e.Data);
+                        SteamIDs = steamids.ToArray(),
+                        Version = ClientCommon.Version.ClientVersion,
+                        Mods = mods.ToArray()
+                    };
+                    var json = JObject.FromObject(init).ToString(Formatting.None);
+                    Send(json);
+                };
 
-                                            switch (msg["msg"].Value<string>())
-                                            {
-                                                case Shutdown.Msg:
-                                                    log.Debug("Shutting down due to server request.");
-                                                    shutDown = true;
-                                                    return;
-                                                case ClientCommon.Methods.Uninstall.Msg:
-                                                    log.Debug("Uninstalling due to server request...");
-                                                    Uninstall();
-                                                    shutDown = true;
-                                                    return;
-                                                case ClientCommon.Methods.InstallMod.Msg:
-                                                    ThreadPool.QueueUserWorkItem(InstallMod, msg.ToObject<InstallMod>());
-                                                    break;
-                                                case ClientCommon.Methods.DeleteMod.Msg:
-                                                    ThreadPool.QueueUserWorkItem(DeleteMod, msg.ToObject<DeleteMod>());
-                                                    break;
-                                                case ClientCommon.Methods.SetMod.Msg:
-                                                    ThreadPool.QueueUserWorkItem(SetMod, msg.ToObject<SetMod>());
-                                                    break;
-                                                case ClientCommon.Methods.ConnectDota.Msg:
-                                                    ThreadPool.QueueUserWorkItem(ConnectDota, msg.ToObject<ConnectDota >());
-                                                    break;
-                                                case ClientCommon.Methods.LaunchDota.Msg:
-                                                    ThreadPool.QueueUserWorkItem(LaunchDota, msg.ToObject<LaunchDota>());
-                                                    break;
-                                                case ClientCommon.Methods.ConnectDotaSpectate.Msg:
-                                                    ThreadPool.QueueUserWorkItem(SpectateGame, msg.ToObject<ConnectDotaSpectate>());
-                                                    break;
-                                                default:
-                                                    log.Error("Command not recognized.");
-                                                    break;
-                                            }
-                                        };
-
-                        ws.OnOpen += (sender, e) => log.Debug("Connected");
-                        ws.OnClose += (sender, args) => log.Debug("Disconnected");
-                        ws.Connect();
-                        tryCount++;
-                        if (!ws.IsAlive)
-                        {
-                            if (tryCount == 1)
-                            {
-                                icon.DisplayBubble("Disconnected, attempting to reconnect...");
-                            }
-                            log.Debug("Can't connect to server, tries: " + tryCount);
-                            Thread.Sleep(500);
-                            continue;
-                        }
-
-                        log.Debug("Sending init, version: " + ClientCommon.Version.ClientVersion);
-                        var init = new Init { SteamIDs = steamids.ToArray(), Version = ClientCommon.Version.ClientVersion, Mods = mods.ToArray() };
-                        var json = JObject.FromObject(init).ToString(Formatting.None);
-                        ws.Send(json);
-                       
-                        icon.DisplayBubble(tryCount > 1
-                            ? "Reconnected!"
-                            : "Connected and ready to begin installing mods.");
-
-                        tryCount = 0;
-                        while (ws.IsAlive && !shutDown)
-                        {
-                            Thread.Sleep(100);
-                        }
+                client.Bind("commands", e =>
+                {
+                    log.Debug("server: " + e.data);
+                    JObject msg = JObject.Parse(e.data);
+                    switch (msg["msg"].Value<string>())
+                    {
+                        case Shutdown.Msg:
+                            log.Debug("Shutting down due to server request.");
+                            shutDown = true;
+                            return;
+                        case ClientCommon.Methods.Uninstall.Msg:
+                            log.Debug("Uninstalling due to server request...");
+                            Uninstall();
+                            shutDown = true;
+                            return;
+                        case ClientCommon.Methods.InstallMod.Msg:
+                            ThreadPool.QueueUserWorkItem(InstallMod, msg.ToObject<InstallMod>());
+                            break;
+                        case ClientCommon.Methods.DeleteMod.Msg:
+                            ThreadPool.QueueUserWorkItem(DeleteMod, msg.ToObject<DeleteMod>());
+                            break;
+                        case ClientCommon.Methods.SetMod.Msg:
+                            ThreadPool.QueueUserWorkItem(SetMod, msg.ToObject<SetMod>());
+                            break;
+                        case ClientCommon.Methods.ConnectDota.Msg:
+                            ThreadPool.QueueUserWorkItem(ConnectDota, msg.ToObject<ConnectDota>());
+                            break;
+                        case ClientCommon.Methods.LaunchDota.Msg:
+                            ThreadPool.QueueUserWorkItem(LaunchDota, msg.ToObject<LaunchDota>());
+                            break;
+                        case ClientCommon.Methods.ConnectDotaSpectate.Msg:
+                            ThreadPool.QueueUserWorkItem(SpectateGame,
+                                msg.ToObject<ConnectDotaSpectate>());
+                            break;
+                        default:
+                            log.Error("Command not recognized.");
+                            break;
                     }
-                    Thread.Sleep(1000);
+                });
+                client.OnClose += (sender, args) =>
+                                  {
+                                      if (hasConnected)
+                                      {
+                                          icon.DisplayBubble("Disconnected, attempting to reconnect...");
+                                          hasConnected = false;
+                                      }
+                                      try
+                                      {
+                                          client.Open();
+                                      }
+                                      catch (Exception ex)
+                                      {
+                                          icon.DisplayBubble("Can't connect to the lobby server!");
+                                      }
+                                  };
+                try
+                {
+                    client.Open();
                 }
+                catch (Exception ex)
+                {
+                    icon.DisplayBubble("Can't connect to the lobby server!");
+                }
+                while (!shutDown)
+                {
+                    Thread.Sleep(100);
+                }
+                client.Close();
             }
             catch (Exception ex)
             {
                 log.Fatal("Overall error in the program: " + ex);
             }
             //UnmodGameInfo();
+            shutDown = true;
             Application.Exit();
         }
 
@@ -432,9 +450,9 @@ namespace d2mp
             //Stream the ZIP to the folder
             try
             {
-                using (var client = new WebClient())
+                using (var wc = new WebClient())
                 {
-                    UnzipFromStream(client.OpenRead(op.url), targetDir);
+                    UnzipFromStream(wc.OpenRead(op.url), targetDir);
                 }
             }
             catch (Exception ex)
@@ -449,7 +467,7 @@ namespace d2mp
                                  {
                                      Mod = op.Mod
                                  };
-            ws.Send(JObject.FromObject(msg).ToString(Formatting.None));
+            Send(JObject.FromObject(msg).ToString(Formatting.None));
             var existing = mods.FirstOrDefault(m => m.name == op.Mod.name);
             if (existing != null) mods.Remove(existing);
             mods.Add(op.Mod);
