@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2mpclient", "d2mpclient\d2mp.csproj", "{31FBB6FD-F8FD-4530-9F66-30054C9D6D6D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2mpclient", "d2mpclient\D2MPClient.csproj", "{31FBB6FD-F8FD-4530-9F66-30054C9D6D6D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2mpclientinstaller", "d2mpclientinstaller\D2MPClientInstaller.csproj", "{646ABEF9-859C-40DA-9758-B62CCEE0DB30}"
 EndProject
