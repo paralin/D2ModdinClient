@@ -502,9 +502,9 @@ namespace d2mp
             string message = "You currently have the following detected mods installed:\n\n";
             foreach (var mod in mods)
             {
-                message += mod.name + "@" + mod.version;
+                message += mod.name + "@" + mod.version + ", ";
             }
-            MessageBox.Show(message, "Installed Mods");
+            MessageBox.Show(message.Substring(0, message.Length - 2), "Installed Mods");
         }
     }
 
