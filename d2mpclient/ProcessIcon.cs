@@ -34,7 +34,7 @@ namespace d2mp
         /// The NotifyIcon object.
         /// </summary>
         NotifyIcon ni;
-
+        public Action showNotification { get; set; }
         /// <summary>
         /// Initializes a new instance of the <see cref="ProcessIcon"/> class.
         /// </summary>
@@ -52,7 +52,7 @@ namespace d2mp
             // Put the icon in the system tray and allow it react to mouse clicks.			
             ni.MouseClick += new MouseEventHandler(ni_MouseClick);
             ni.Icon = Resources.D2MPIconSmall;
-            ni.Text = "D2Moddin Manager";
+            ni.Text = "D2Moddin Manager\nClick to view last received notification.";
             ni.Visible = true;
 
             // Attach a context menu.
@@ -78,6 +78,7 @@ namespace d2mp
             // Handle mouse button clicks.
             if (e.Button == MouseButtons.Left)
             {
+                showNotification();
             }
         }
 
@@ -109,6 +110,7 @@ namespace d2mp
             item.Click += new EventHandler(Restart_Click);
             menu.Items.Add(item);
 
+            // Uninstall.
             item = new ToolStripMenuItem();
             item.Text = "Uninstall";
             item.Click += new EventHandler(Uninstall_Click);
@@ -118,6 +120,12 @@ namespace d2mp
             item = new ToolStripMenuItem();
             item.Text = "Show Mod List";
             item.Click += new EventHandler(ModList_Click);
+            menu.Items.Add(item);
+
+            // Preferences
+            item = new ToolStripMenuItem();
+            item.Text = "Preferences";
+            item.Click += new EventHandler(Preferences_Click);
             menu.Items.Add(item);
 
             // Separator.
@@ -132,6 +140,11 @@ namespace d2mp
             menu.Items.Add(item);
 
             return menu;
+        }
+
+        private void Preferences_Click(object sender, EventArgs e)
+        {
+            D2MP.showPreferences();
         }
 
         private void Uninstall_Click(object sender, EventArgs e)
