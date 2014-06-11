@@ -1,5 +1,5 @@
-![](https://s3-us-west-2.amazonaws.com/d2mpimages/logo.png)
-![](https://s3-us-west-2.amazonaws.com/d2mpimages/header_shadow.png)
+![](http://i.imgur.com/ncfLlMB.png)
+![](http://i.imgur.com/i0hzUwu.png)
 
 This is the public release of the [D2Moddin](http://d2modd.in/) client addon manager and launcher. 
 
