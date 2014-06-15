@@ -1,4 +1,10 @@
-﻿using System;
+﻿// 
+// notificationForm.cs
+// Created by ilian000 on 2014-06-06
+// Licenced under the Apache License, Version 2.0
+//
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -31,7 +37,7 @@ namespace d2mp
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+        internal static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
         public notificationForm()
         {

@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2mpclient", "d2mpclient\D2MPClient.csproj", "{31FBB6FD-F8FD-4530-9F66-30054C9D6D6D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "D2MPClient", "d2mpclient\D2MPClient.csproj", "{31FBB6FD-F8FD-4530-9F66-30054C9D6D6D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2mpclientinstaller", "d2mpclientinstaller\D2MPClientInstaller.csproj", "{646ABEF9-859C-40DA-9758-B62CCEE0DB30}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "D2MPClientInstaller", "d2mpclientinstaller\D2MPClientInstaller.csproj", "{646ABEF9-859C-40DA-9758-B62CCEE0DB30}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientCommon", "ClientCommon\ClientCommon.csproj", "{DCF78698-62E1-461F-86AE-69A4E8DC5D16}"
 EndProject
@@ -39,26 +39,16 @@ Global
 		{646ABEF9-859C-40DA-9758-B62CCEE0DB30}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{646ABEF9-859C-40DA-9758-B62CCEE0DB30}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{646ABEF9-859C-40DA-9758-B62CCEE0DB30}.Release|Win32.ActiveCfg = Release|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{C7ADD748-6238-40BD-A2F3-039296D59E3C}.Release|Win32.ActiveCfg = Release|Any CPU
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Debug|Mixed Platforms.ActiveCfg = Release|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Debug|Mixed Platforms.Build.0 = Release|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Debug|Win32.ActiveCfg = Debug|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Debug|Win32.Build.0 = Debug|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Release|Any CPU.ActiveCfg = Release|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Release|Win32.ActiveCfg = Release|Win32
-		{E62E5876-E1E2-41A0-85CA-1B41B9DA55F9}.Release|Win32.Build.0 = Release|Win32
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{DCF78698-62E1-461F-86AE-69A4E8DC5D16}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -181,6 +181,7 @@
             this.Controls.Add(this.gbxSteamDir);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MaximizeBox = false;
             this.Name = "settingsForm";
             this.Text = "D2Modd.in Preferences";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.settingsForm_FormClosing);

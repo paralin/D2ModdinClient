@@ -100,7 +100,20 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="creditsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="creditsForm.Designer.cs">
+      <DependentUpon>creditsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="D2MP.cs" />
+    <Compile Include="modController.cs" />
+    <Compile Include="modManager.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="modManager.Designer.cs">
+      <DependentUpon>modManager.cs</DependentUpon>
+    </Compile>
     <Compile Include="notificationForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -117,6 +130,12 @@
     <Compile Include="settingsForm.Designer.cs">
       <DependentUpon>settingsForm.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="creditsForm.resx">
+      <DependentUpon>creditsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="modManager.resx">
+      <DependentUpon>modManager.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="notificationForm.resx">
       <DependentUpon>notificationForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -189,6 +208,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\icon_warning.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\D2ModdinLogo.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
