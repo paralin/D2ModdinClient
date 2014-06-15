@@ -47,13 +47,14 @@ namespace d2mp
         /// <summary>
         /// Shows notification for a limited time.
         /// </summary>
-        /// <param name="type">Type of notification. 1: success, 2: info, 3: warning, 4: error</param>
+        /// <param name="type">Type of notification. 1: success, 2: info, 3: warning, 4: error, 5: progress</param>
         /// <param name="title">Title displayed on notification window</param>
         /// <param name="message">Message displayed on notification window</param>
         public void Notify(int type, string title, string message)
         {
             this.InvokeIfRequired(() =>
             {
+                notifierProgress.Hide();
                 switch (type)
                 {
                     case 1:
@@ -72,6 +73,12 @@ namespace d2mp
                         BackColor = errorBg;
                         icon.Image = errorIcon;
                         break;
+                    case 5:
+                        BackColor = infoBg;
+                        icon.Image = infoIcon;
+                        notifierProgress.Value = 0;
+                        notifierProgress.Show();
+                        break;
                     default:
                         BackColor = successBg;
                         break;
@@ -81,9 +88,19 @@ namespace d2mp
                 this.Opacity = 1;
                 // Resets the timer -- Looks damn stupid
                 hideTimer.Stop();
-                hideTimer.Start();
+                if(type != 5)
+                    hideTimer.Start();
             });
         }
+
+        public void reportProgress(int value)
+        {
+            this.InvokeIfRequired(() =>
+            {
+                notifierProgress.Value = value;
+            });
+        }
+
         public void Fade(double opacity)
         {
             double toFade = this.Opacity - opacity;

@@ -462,7 +462,7 @@ namespace d2mp
                 return;
             }
             isInstalling = true;
-            notifier.Notify(2, "Downloading mod", "Attempting to download " + op.Mod.name + "...");
+            notifier.Notify(5, "Downloading mod", "Downloading " + op.Mod.name + "...");
             //icon.DisplayBubble("Attempting to download "+op.Mod.name+"...");
 
             log.Info("Server requested that we install mod " + op.Mod.name + " from download " + op.url);
@@ -481,6 +481,7 @@ namespace d2mp
                     int lastProgress = -1;
                     wc.DownloadProgressChanged += (sender, e) =>
                     {
+                        notifier.reportProgress(e.ProgressPercentage);
                         if (e.ProgressPercentage % 5 == 0 && e.ProgressPercentage > lastProgress)
                         {
                             lastProgress = e.ProgressPercentage;
@@ -498,6 +499,7 @@ namespace d2mp
                             notifier.Notify(4, "Error downloading mod", "The connection forcibly closed by the remote host. Please try again.");
                             throw;
                         }
+                        notifier.Notify(2, "Extracting mod", "Download completed, extracting files...");
                         Stream s = new MemoryStream(buffer);
                         UnzipFromStream(s, targetDir);
                         refreshMods();
