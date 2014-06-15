@@ -9,6 +9,13 @@ namespace ClientCommon.Methods
         public ClientMod Mod { get; set; }
     }
 
+    public class OnDeletedMod
+    {
+        public const string Msg = "ondeleted";
+        public string msg = Msg;
+        public ClientMod Mod { get; set; }
+    }
+
     public class InstallMod
     {
         public const string Msg = "installmod";

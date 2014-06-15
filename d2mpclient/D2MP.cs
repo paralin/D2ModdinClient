@@ -43,14 +43,13 @@ namespace d2mp
     public class D2MP
     {
         private static string server = "ws://ddp2.d2modd.in:4502/ClientController";
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        public static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private static string addonsDir;
-        private static string d2mpDir;
+        public static string d2mpDir;
         private static string modDir;
         private static ClientCommon.Data.ClientMod activeMod;
         public static bool shutDown = false;
         public static string ourDir;
-        private static List<ClientCommon.Data.ClientMod> mods = new List<ClientCommon.Data.ClientMod>();
         private static volatile ProcessIcon icon;
         private static volatile notificationForm notifier;
         private static volatile settingsForm settingsForm = new settingsForm();
@@ -103,7 +102,7 @@ namespace d2mp
                 {
                     SteamIDs = steamids.ToArray(),
                     Version = ClientCommon.Version.ClientVersion,
-                    Mods = mods.ToArray()
+                    Mods = modController.clientMods.ToArray()
                 };
                 var json = JObject.FromObject(init).ToString(Formatting.None);
                 Send(json);
@@ -137,7 +136,9 @@ namespace d2mp
                         ThreadPool.QueueUserWorkItem(ConnectDota, msg.ToObject<ConnectDota>());
                         break;
                     case ClientCommon.Methods.LaunchDota.Msg:
+#if !DEBUG
                         ThreadPool.QueueUserWorkItem(LaunchDota, msg.ToObject<LaunchDota>());
+#endif
                         break;
                     case ClientCommon.Methods.ConnectDotaSpectate.Msg:
                         ThreadPool.QueueUserWorkItem(SpectateGame,
@@ -148,18 +149,28 @@ namespace d2mp
                         break;
                 }
             });
-            client.OnClose += (sender, args) =>
+            client.OnClose += (sender, args)=>
+                HandleClose();
+        }
+
+        private static void HandleClose()
+        {
+            if (hasConnected)
             {
-                if (hasConnected)
-                {
-                    notifier.Notify(3, "Lost connection", "Attempting to reconnect...");
-                    //icon.DisplayBubble("Disconnected, attempting to reconnect...");
-                    hasConnected = false;
-                }
-                SetupClient();
-                Thread.Sleep(5000);
+                notifier.Notify(3, "Lost connection", "Attempting to reconnect...");
+                //icon.DisplayBubble("Disconnected, attempting to reconnect...");
+                hasConnected = false;
+            }
+            SetupClient();
+            Thread.Sleep(5000);
+            try
+            {
                 client.Open();
-            };
+            }
+            catch (Exception ex)
+            {
+                HandleClose();
+            }
         }
 
         //Pipe a zip download directly through the decompressor
@@ -210,7 +221,8 @@ namespace d2mp
         public static void main()
         {
             log.Debug("D2MP starting...");
-            var notifyThread = new Thread(delegate() {
+            var notifyThread = new Thread(delegate()
+            {
                 using (notifier = new notificationForm())
                 {
                     notifier.Visible = true;
@@ -226,7 +238,7 @@ namespace d2mp
                                             using (icon = new ProcessIcon())
                                             {
                                                 icon.Display();
-                                                icon.showNotification = delegate { notifier.Invoke(new MethodInvoker(delegate { notifier.Fade(1); notifier.hideTimer.Start(); })); };                        
+                                                icon.showNotification = delegate { notifier.Invoke(new MethodInvoker(delegate { notifier.Fade(1); notifier.hideTimer.Start(); })); };
                                                 Application.Run();
                                             }
                                         });
@@ -262,34 +274,7 @@ namespace d2mp
                     Directory.CreateDirectory(modDir);
 
                 {
-                    string[] dirs = Directory.GetDirectories(d2mpDir);
-                    int i = 0;
-                    foreach (string modName in dirs.Select(Path.GetFileName))
-                    {
-                        log.Debug("Found mod: " + modName + " detecting version...");
-                        string infoPath = Path.Combine(d2mpDir, modName + @"\addoninfo.txt");
-                        string versionFile = "";
-                        if (File.Exists(infoPath))
-                        {
-                            versionFile = File.ReadAllText(infoPath);
-                        }
-                        Match match = Regex.Match(versionFile, @"(addonversion)(\s+)(\d+\.)?(\d+\.)?(\d+\.)?(\*|\d+)",
-                            RegexOptions.IgnoreCase);
-                        if (match.Success)
-                        {
-                            string version = match.Groups.Cast<Group>()
-                                .ToList()
-                                .Skip(3)
-                                .Aggregate("", (current, part) => current + part.Value);
-                            log.Debug(modName + "=" + version);
-                            mods.Add(new ClientMod {name = modName, version = version});
-                        }
-                        else
-                        {
-                            log.Error("Can't find version info for mod: " + modName + ", not including");
-                        }
-                        i++;
-                    }
+                    modController.getLocalMods();
                 }
 
                 //Detect user
@@ -335,7 +320,8 @@ namespace d2mp
                 catch (Exception ex)
                 {
                     notifier.Notify(4, "Server error", "Can't connect to the lobby server!");
-                    //icon.DisplayBubble("Can't connect to the lobby server!");
+                    Thread.Sleep(5000);
+                    HandleClose();
                 }
                 while (!shutDown)
                 {
@@ -352,7 +338,7 @@ namespace d2mp
             Application.Exit();
         }
 
-        private static ClientCommon.Data.ClientMod GetActiveMod()
+        public static ClientCommon.Data.ClientMod GetActiveMod()
         {
             string infoPath = Path.Combine(modDir, "modname.txt");
             if (!File.Exists(infoPath)) return null;
@@ -375,7 +361,7 @@ namespace d2mp
             if (!Dota2Running()) LaunchDota2();
         }
 
-        private static void SetMod(object state)
+        public static void SetMod(object state)
         {
             activeMod = GetActiveMod();
             var op = state as SetMod;
@@ -389,11 +375,12 @@ namespace d2mp
                 File.WriteAllText(Path.Combine(modDir, "modname.txt"),
                     JObject.FromObject(op.Mod).ToString(Formatting.Indented));
                 notifier.Notify(1, "Active mod", "The current active mod has been set to " + op.Mod.name + ".");
+                refreshMods();
                 //icon.DisplayBubble("Set active mod to " + op.Mod.name + "!");
             }
             catch (Exception ex)
             {
-                log.Error("Can't set mod "+op.Mod.name+".", ex);
+                log.Error("Can't set mod " + op.Mod.name + ".", ex);
                 notifier.Notify(4, "Active mod", "Unable to set active mod, try closing Dota first.");
                 //icon.DisplayBubble("Unable to set active mod, try closing Dota first.");
             }
@@ -449,17 +436,25 @@ namespace d2mp
             log.Debug("Told Steam to connect to " + op.ip + ".");
         }
 
-        private static void DeleteMod(object state)
+        public static void DeleteMod(object state)
         {
             var op = state as DeleteMod;
             string targetDir = Path.Combine(d2mpDir, op.Mod.name);
             if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
-            log.Debug("Server requested that we delete mod " + op.Mod.name + ".");
+            log.Debug("Server/user requested that we delete mod " + op.Mod.name + ".");
+            var msg = new OnDeletedMod
+            {
+                Mod = op.Mod
+            };
+            Send(JObject.FromObject(msg).ToString(Formatting.None));
+            var existing = modController.clientMods.FirstOrDefault(m => m.name == op.Mod.name);
+            if (existing != null) modController.clientMods.Remove(existing);
+            refreshMods();
         }
 
-        private static void InstallMod(object state)
+        public static void InstallMod(object state)
         {
-            var op = state as InstallMod; 
+            var op = state as InstallMod;
             if (isInstalling)
             {
                 notifier.Notify(3, "Already downloading a mod", "Please try again after a few seconds.");
@@ -467,7 +462,7 @@ namespace d2mp
                 return;
             }
             isInstalling = true;
-            notifier.Notify(2, "Downloading mod", "Attempting to download " + op.Mod.name + "...");
+            notifier.Notify(5, "Downloading mod", "Downloading " + op.Mod.name + "...");
             //icon.DisplayBubble("Attempting to download "+op.Mod.name+"...");
 
             log.Info("Server requested that we install mod " + op.Mod.name + " from download " + op.url);
@@ -484,7 +479,9 @@ namespace d2mp
                 using (var wc = new WebClient())
                 {
                     int lastProgress = -1;
-                    wc.DownloadProgressChanged += (sender, e) => {
+                    wc.DownloadProgressChanged += (sender, e) =>
+                    {
+                        notifier.reportProgress(e.ProgressPercentage);
                         if (e.ProgressPercentage % 5 == 0 && e.ProgressPercentage > lastProgress)
                         {
                             lastProgress = e.ProgressPercentage;
@@ -493,9 +490,19 @@ namespace d2mp
                     };
                     wc.DownloadDataCompleted += (sender, e) =>
                     {
-                        byte[] buffer = e.Result;
+                        byte[] buffer;
+                        try
+                        {
+                            buffer = e.Result;
+                        }
+                        catch{
+                            notifier.Notify(4, "Error downloading mod", "The connection forcibly closed by the remote host. Please try again.");
+                            throw;
+                        }
+                        notifier.Notify(2, "Extracting mod", "Download completed, extracting files...");
                         Stream s = new MemoryStream(buffer);
                         UnzipFromStream(s, targetDir);
+                        refreshMods();
                         log.Info("Mod installed!");
                         notifier.Notify(1, "Mod installed", "The following mod has been installed successfully: " + op.Mod.name);
                         //icon.DisplayBubble("Mod downloaded successfully: " + op.Mod.name + ".");
@@ -504,9 +511,9 @@ namespace d2mp
                             Mod = op.Mod
                         };
                         Send(JObject.FromObject(msg).ToString(Formatting.None));
-                        var existing = mods.FirstOrDefault(m => m.name == op.Mod.name);
-                        if (existing != null) mods.Remove(existing);
-                        mods.Add(op.Mod);
+                        var existing = modController.clientMods.FirstOrDefault(m => m.name == op.Mod.name);
+                        if (existing != null) modController.clientMods.Remove(existing);
+                        modController.clientMods.Add(op.Mod);
                         isInstalling = false;
                     };
                     wc.DownloadDataAsync(new Uri(op.url));
@@ -520,7 +527,6 @@ namespace d2mp
                 return;
             }
         }
-
         public static void DeleteMods()
         {
             if (Directory.Exists(modDir)) Directory.Delete(modDir, true);
@@ -544,23 +550,34 @@ namespace d2mp
             shutDown = true;
         }
 
-        public static void ShowModList()
+        public static void showModManager()
         {
-            string message = "You currently have the following detected mods installed:\n\n";
-            foreach (var mod in mods)
+            Form frm = Application.OpenForms["modManager"];
+            if (frm != null) frm.Close();
+            modManager manager = new modManager();
+            manager.Show();
+        }
+
+        private static void refreshMods()
+        {
+            modManager modFrm = (modManager)Application.OpenForms["modManager"];
+            if (modFrm != null)
             {
-                message += mod.name + "@" + mod.version + Environment.NewLine;
+                modFrm.InvokeIfRequired(() => { modFrm.refreshTable(); });
             }
-            if (mods.Count == 0)
-            {
-                message += "None.";
-            }
-            MessageBox.Show(message, "Installed Mods");
+
         }
 
         public static void showPreferences()
         {
             settingsForm.Show();
+            settingsForm.Focus();
+        }
+
+        public static void showCredits()
+        {
+            creditsForm frm = new creditsForm();
+            frm.Show();
         }
     }
 
@@ -616,7 +633,7 @@ namespace d2mp
                         cachedLocation = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 9);
                         return cachedLocation;
 
-                   }
+                    }
                     else
                     {
                         Thread.Sleep(500);
