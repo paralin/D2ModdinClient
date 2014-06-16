@@ -176,29 +176,36 @@ namespace d2mp
         //Pipe a zip download directly through the decompressor
         private static void UnzipFromStream(Stream zipStream, string outFolder)
         {
-            var zipInputStream = new ZipInputStream(zipStream);
-            ZipEntry zipEntry = zipInputStream.GetNextEntry();
-            while (zipEntry != null)
+            try
             {
-                String entryFileName = zipEntry.Name;
-                log.Debug(" --> " + entryFileName);
-                var buffer = new byte[4096];
-                String fullZipToPath = Path.Combine(outFolder, entryFileName);
-                string directoryName = Path.GetDirectoryName(fullZipToPath);
-                if (directoryName.Length > 0)
+                var zipInputStream = new ZipInputStream( zipStream );
+                ZipEntry zipEntry = zipInputStream.GetNextEntry();
+                while ( zipEntry != null )
                 {
-                    Directory.CreateDirectory(directoryName);
-                    Thread.Sleep(30);
-                }
-
-                if (Path.GetFileName(fullZipToPath) != String.Empty)
-                {
-                    using (FileStream streamWriter = File.Create(fullZipToPath))
+                    String entryFileName = zipEntry.Name;
+                    log.Debug( " --> " + entryFileName );
+                    var buffer = new byte[4096];
+                    String fullZipToPath = Path.Combine( outFolder, entryFileName );
+                    string directoryName = Path.GetDirectoryName( fullZipToPath );
+                    if ( directoryName.Length > 0 )
                     {
-                        StreamUtils.Copy(zipInputStream, streamWriter, buffer);
+                        Directory.CreateDirectory( directoryName );
+                        Thread.Sleep( 30 );
                     }
+
+                    if ( Path.GetFileName( fullZipToPath ) != String.Empty )
+                    {
+                        using ( FileStream streamWriter = File.Create( fullZipToPath ) )
+                        {
+                            StreamUtils.Copy( zipInputStream, streamWriter, buffer );
+                        }
+                    }
+                    zipEntry = zipInputStream.GetNextEntry();
                 }
-                zipEntry = zipInputStream.GetNextEntry();
+            }
+            catch ( Exception ex )
+            {
+                log.Error( "Error while unzipping from stream", ex );
             }
         }
 
@@ -331,7 +338,7 @@ namespace d2mp
             }
             catch (Exception ex)
             {
-                log.Fatal("Overall error in the program: " + ex);
+                log.Fatal( "Overall error in the program", ex );
             }
             //UnmodGameInfo();
             shutDown = true;
@@ -522,6 +529,7 @@ namespace d2mp
             catch (Exception ex)
             {
                 isInstalling = false;
+                log.Error( "Exception while trying to download mod " + op.Mod.name, ex );
                 notifier.Notify(4, "Error downloading mod", "Failed to download mod " + op.Mod.name + ".");
                 //icon.DisplayBubble("Failed to download mod " + op.Mod.name + ".");
                 return;
