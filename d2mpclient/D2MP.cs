@@ -343,9 +343,18 @@ namespace d2mp
             string infoPath = Path.Combine(modDir, "modname.txt");
             if (!File.Exists(infoPath)) return null;
             string name = File.ReadAllText(infoPath);
-            var mod = JObject.Parse(name).ToObject<ClientMod>();
-            log.Debug("Current active mod: " + mod.name);
-            return mod;
+            try
+            {
+                var mod = JObject.Parse(name).ToObject<ClientMod>();
+                log.Debug("Current active mod: " + mod.name);
+                return mod;
+            }
+            catch(Newtonsoft.Json.JsonReaderException e)
+            {
+                File.Delete(infoPath);
+                //TODO: Restart launcher
+                return null;
+            }
         }
 
         private static void SpectateGame(object state)
