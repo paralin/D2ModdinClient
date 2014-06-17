@@ -218,6 +218,12 @@ namespace d2mp
             Process.Start(info);
         }
 
+        private static void UnregisterLaunchURI()
+        {
+            RegistryKey classesKey = Registry.CurrentUser.OpenSubKey("Software", true).OpenSubKey("Classes", true);
+            classesKey.DeleteSubKeyTree("d2moddin");
+        }
+
         public static void main()
         {
             log.Debug("D2MP starting...");
@@ -538,6 +544,7 @@ namespace d2mp
         {
             DeleteMods();
             UninstallD2MP();
+            UnregisterLaunchURI();
             shutDown = true;
         }
 

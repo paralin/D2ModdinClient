@@ -24,6 +24,7 @@ using System.Threading;
 using System.Windows.Forms;
 using ICSharpCode.SharpZipLib.Core;
 using ICSharpCode.SharpZipLib.Zip;
+using Microsoft.Win32;
 
 namespace D2MPClientInstaller
 {
@@ -75,6 +76,20 @@ namespace D2MPClientInstaller
                 }
                 zipEntry = zipInputStream.GetNextEntry();
             }
+        }
+
+        static void RegisterLaunchURI()
+        {
+            RegistryKey classesKey = Registry.CurrentUser.OpenSubKey("Software", true).OpenSubKey("Classes", true);
+
+            RegistryKey d2moddinKey = classesKey.CreateSubKey("d2moddin");
+
+            d2moddinKey.SetValue("", "URL:D2Modd.in Launcher");
+            d2moddinKey.SetValue("URL Protocol", "");
+
+            d2moddinKey.CreateSubKey("DefaultIcon").SetValue("", "d2mp.exe");
+
+            d2moddinKey.CreateSubKey("Shell").CreateSubKey("Open").CreateSubKey("Command").SetValue("", Path.Combine(installdir, "d2mp.exe"));
         }
 
         static void LaunchD2MP(string path)
@@ -181,6 +196,16 @@ namespace D2MPClientInstaller
                     {
                         Log(ex.ToString());
                         ShowError("Problem downloading new D2Moddin launcher: " + ex);
+                    }
+                    Log("Registering Launch URI");
+                    try
+                    {
+                        RegisterLaunchURI();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log(ex.ToString());
+                        ShowError("Problem registering launch URI");
                     }
                 }
             }
