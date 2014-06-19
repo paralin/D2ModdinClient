@@ -109,7 +109,7 @@ namespace d2mp
 
         private void installModBrowser(string name)
         {
-            Process.Start(string.Format("http://alpha.d2modd.in/install/{0}", name));
+            Process.Start(string.Format("http://beta.d2modd.in/install/{0}", name));
         }
 
         private void btnRefresh_Click(object sender, EventArgs e)

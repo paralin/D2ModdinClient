@@ -60,7 +60,18 @@ namespace d2mp
 
         private static void SteamCommand(string command)
         {
-            Process.Start("explorer.exe", "steam://" + command);
+        	switch(OS.RunningPlatform()) 
+			{
+			case OS.Platform.Windows:
+            	Process.Start("explorer.exe", "steam://" + command);
+				break;
+			case OS.Platform.Linux:
+				Process.Start("steam", " steam://" + command);
+				break;
+			case OS.Platform.Mac:
+				Process.Start ("open /Applications/Steam.app", "steam://" + command);
+				break;
+			}
         }
 
         private static void LaunchDota2()
@@ -263,8 +274,8 @@ namespace d2mp
                 log.Debug("Steam found: " + Settings.steamDir);
                 log.Debug("Dota found: " + Settings.dotaDir);
 
-                addonsDir = Path.Combine(Settings.dotaDir, @"dota\addons\");
-                d2mpDir = Path.Combine(Settings.dotaDir, @"dota\d2moddin\");
+                addonsDir = Path.Combine(Settings.dotaDir, "dota","addons");
+                d2mpDir = Path.Combine(Settings.dotaDir, "dota","d2moddin");
                 modDir = Path.Combine(addonsDir, "d2moddin");
                 if (!Directory.Exists(addonsDir))
                     Directory.CreateDirectory(addonsDir);
@@ -278,7 +289,7 @@ namespace d2mp
                 }
 
                 //Detect user
-                string config = File.ReadAllText(Path.Combine(Settings.steamDir, @"config\config.vdf"));
+                string config = File.ReadAllText(Path.Combine(Settings.steamDir, Path.Combine ("config","config.vdf")));
                 MatchCollection matches = Regex.Matches(config, "\"\\d{17}\"");
                 string steamid;
                 steamids = new List<string>();
@@ -388,7 +399,7 @@ namespace d2mp
 
         private static void ModGameInfo()
         {
-            string path = Path.Combine(Settings.dotaDir, @"dota\gameinfo.txt");
+            string path = Path.Combine(Settings.dotaDir, @"dota", "gameinfo.txt");
             if (File.Exists(path))
             {
                 log.Debug("Checking if patch needed on " + path + "...");
@@ -397,7 +408,7 @@ namespace d2mp
                 Match match = reg.Match(text);
                 if (match.Success)
                 {
-                    text = reg.Replace(text, "Game				platform\n			Game				|gameinfo_path|addons\\d2moddin\n		}");
+					text = reg.Replace(text, "Game        platform\n	\t\tGame        |gameinfo_path|addons\\d2moddin\n    \t}");
                     File.WriteAllText(path, text);
                     log.Debug("Patched file to add d2moddin search path.");
                     if (Dota2Running())
@@ -585,7 +596,9 @@ namespace d2mp
     {
         private static readonly string[] knownLocations =
         {
-            @"C:\Steam\", @"C:\Program Files (x86)\Steam\", @"C:\Program Files\Steam\"
+            @"C:\Steam\", @"C:\Program Files (x86)\Steam\", @"C:\Program Files\Steam\", // windows locations
+			Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "/.local/share/Steam/", // linux locations
+			Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "/Library/Application Support/Steam", // osx locations
         };
 
         private string cachedDotaLocation = "";
@@ -593,7 +606,18 @@ namespace d2mp
 
         private bool ContainsSteam(string dir)
         {
-            return Directory.Exists(dir) && File.Exists(Path.Combine(dir, "Steam.exe"));
+			if(Directory.Exists (dir)) 
+			{
+				switch(OS.RunningPlatform()) {
+				case OS.Platform.Windows:
+					return File.Exists (Path.Combine (dir, "Steam.exe"));
+				case OS.Platform.Linux:
+					return File.Exists (Path.Combine(dir, "steam.sh"));
+				default:
+					return true; // OSX steam application is in /Application
+				}
+			}
+			return false;
         }
 
         public string FindSteam(bool delCache)
@@ -611,14 +635,16 @@ namespace d2mp
                 }
 
                 //Get from registry?
-                RegistryKey regKey = Registry.CurrentUser;
-                regKey = regKey.OpenSubKey(@"Software\Valve\Steam");
+				if(OS.RunningPlatform() == OS.Platform.Windows) {
+					RegistryKey regKey = Registry.CurrentUser;
+	                regKey = regKey.OpenSubKey(@"Software\Valve\Steam");
 
-                if (regKey != null)
-                {
-                    cachedLocation = regKey.GetValue("SteamPath").ToString();
-                    return cachedLocation;
-                }
+	                if (regKey != null)
+	                {
+	                    cachedLocation = regKey.GetValue("SteamPath").ToString();
+	                    return cachedLocation;
+	                }
+				}
 
                 Process[] processes = Process.GetProcessesByName("STEAM");
                 if (processes.Length > 0)
@@ -650,18 +676,20 @@ namespace d2mp
             if (!delCache && cachedDotaLocation != null) return cachedDotaLocation;
             string steamDir = FindSteam(false);
             //Get from registry
-            RegistryKey regKey = Registry.LocalMachine;
-            regKey =
-                regKey.OpenSubKey(@"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 570");
-            if (regKey != null)
-            {
-                cachedDotaLocation = regKey.GetValue("InstallLocation").ToString();
-                return cachedDotaLocation;
-            }
+			if(OS.RunningPlatform() == OS.Platform.Windows) {
+	            RegistryKey regKey = Registry.LocalMachine;
+	            regKey =
+	                regKey.OpenSubKey(@"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 570");
+	            if (regKey != null)
+	            {
+	                cachedDotaLocation = regKey.GetValue("InstallLocation").ToString();
+	                return cachedDotaLocation;
+	            }
+			}
 
             if (steamDir != null)
             {
-                string dir = Path.Combine(steamDir, @"steamapps\common\dota 2 beta\");
+                string dir = Path.Combine(steamDir, Path.Combine("SteamApps","common","dota 2 beta","")); // it should be ok since windows is case insensitive
                 if (Directory.Exists(dir))
                 {
                     cachedDotaLocation = dir;
@@ -692,4 +720,37 @@ namespace d2mp
             return null;
         }
     }
+    
+	public class OS 
+	{
+		public enum Platform
+		{
+			Windows,
+			Linux,
+			Mac
+		}
+		
+		public static Platform RunningPlatform()
+		{
+			switch (Environment.OSVersion.Platform)
+			{
+			case PlatformID.Unix:
+				// Well, there are chances MacOSX is reported as Unix instead of MacOSX.
+				// Instead of platform check, we'll do a feature checks (Mac specific root folders)
+				if (Directory.Exists("/Applications")
+				    & Directory.Exists("/System")
+				    & Directory.Exists("/Users")
+				    & Directory.Exists("/Volumes"))
+					return Platform.Mac;
+				else
+					return Platform.Linux;
+				
+			case PlatformID.MacOSX:
+				return Platform.Mac;
+				
+			default:
+				return Platform.Windows;
+			}
+		}
+	}
 }
