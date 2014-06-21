@@ -504,6 +504,8 @@ namespace d2mp
                         byte[] buffer;
                         try
                         {
+							if(e.Error != null)
+								throw e.Error;
                             buffer = e.Result;
                         }
                         catch{
@@ -644,28 +646,28 @@ namespace d2mp
 	                    cachedLocation = regKey.GetValue("SteamPath").ToString();
 	                    return cachedLocation;
 	                }
+			
+	                Process[] processes = Process.GetProcessesByName("STEAM");
+	                if (processes.Length > 0)
+	                {
+	                    Process.Start("steam://");
+	                }
+	                int tries = 0;
+	                while (tries < 20)
+	                {
+	                    if (processes.Length > 0)
+	                    {
+	                        cachedLocation = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 9);
+	                        return cachedLocation;
+
+	                    }
+	                    else
+	                    {
+	                        Thread.Sleep(500);
+	                        tries++;
+	                    }
+	                }
 				}
-
-                Process[] processes = Process.GetProcessesByName("STEAM");
-                if (processes.Length > 0)
-                {
-                    Process.Start("steam://");
-                }
-                int tries = 0;
-                while (tries < 20)
-                {
-                    if (processes.Length > 0)
-                    {
-                        cachedLocation = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 9);
-                        return cachedLocation;
-
-                    }
-                    else
-                    {
-                        Thread.Sleep(500);
-                        tries++;
-                    }
-                }
                 return null;
             }
             return cachedLocation;
@@ -695,28 +697,28 @@ namespace d2mp
                     cachedDotaLocation = dir;
                     return dir;
                 }
-            }
-            Process[] processes = Process.GetProcessesByName("DOTA");
-            if (processes.Length > 0)
-            {
-                Process.Start("steam://rungameid/570");
-            }
-            int tries = 0;
-            while (tries < 20)
-            {
-                if (processes.Length > 0)
-                {
-                    cachedLocation = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 8);
-                    processes[0].Kill();
-                    return cachedLocation;
+	            Process[] processes = Process.GetProcessesByName("DOTA");
+	            if (processes.Length > 0)
+	            {
+	                Process.Start("steam://rungameid/570");
+	            }
+	            int tries = 0;
+	            while (tries < 20)
+	            {
+	                if (processes.Length > 0)
+	                {
+	                    cachedLocation = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 8);
+	                    processes[0].Kill();
+	                    return cachedLocation;
 
-                }
-                else
-                {
-                    Thread.Sleep(500);
-                    tries++;
-                }
-            }
+	                }
+	                else
+	                {
+	                    Thread.Sleep(500);
+	                    tries++;
+	                }
+	            }
+			}
             return null;
         }
     }
