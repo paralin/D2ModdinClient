@@ -31,7 +31,6 @@ using ClientCommon.Methods;
 using ICSharpCode.SharpZipLib.Core;
 using ICSharpCode.SharpZipLib.Zip;
 using log4net;
-using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -755,4 +754,29 @@ namespace d2mp
 			}
 		}
 	}
+    public static class FileSystem
+    {
+        public static void CopyDirectory(string sourceDir, string destDir)
+        {
+            DirectoryInfo dir = new DirectoryInfo(sourceDir);
+            if (!dir.Exists)
+            {
+                throw new DirectoryNotFoundException("Source directory not found: " + sourceDir);
+            }
+            if (!Directory.Exists(destDir))
+            {
+                Directory.CreateDirectory(destDir);
+            }
+            foreach (FileInfo f in dir.GetFiles())
+            {
+                string path = Path.Combine(destDir, f.Name);
+                f.CopyTo(path);
+            }
+            foreach (DirectoryInfo d in dir.GetDirectories())
+            {
+                string path = Path.Combine(destDir, d.Name);
+                CopyDirectory(d.FullName, path);
+            }
+        }
+    }
 }
