@@ -95,6 +95,14 @@ namespace d2mp
 
             client.OnOpen += (sender, args) =>
             {
+                System.Timers.Timer timer = new System.Timers.Timer(new TimeSpan(0, 0, 30).TotalMilliseconds);
+                timer.Elapsed += (o, args1) =>
+                {
+                    log.Debug("Sending keep-alive...");
+                    client.Ping(System.Text.Encoding.UTF8.GetBytes("keep-alive"));
+                };
+                timer.Start();
+
                 notifier.Notify(1, hasConnected ? "Reconnected" : "Connected", hasConnected ? "Connection to the server has been reestablished" : "Client has been connected to the server.");
                 //icon.DisplayBubble(hasConnected
                 //    ? "Reconnected!"
