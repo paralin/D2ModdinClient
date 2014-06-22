@@ -83,15 +83,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Newtonsoft.Json.6.0.3\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Text">
-      <HintPath>..\packages\XSockets.Client.3.0.6.2\lib\net40\ServiceStack.Text.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
@@ -100,7 +95,20 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="creditsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="creditsForm.Designer.cs">
+      <DependentUpon>creditsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="D2MP.cs" />
+    <Compile Include="modController.cs" />
+    <Compile Include="modManager.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="modManager.Designer.cs">
+      <DependentUpon>modManager.cs</DependentUpon>
+    </Compile>
     <Compile Include="notificationForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -117,6 +125,12 @@
     <Compile Include="settingsForm.Designer.cs">
       <DependentUpon>settingsForm.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="creditsForm.resx">
+      <DependentUpon>creditsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="modManager.resx">
+      <DependentUpon>modManager.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="notificationForm.resx">
       <DependentUpon>notificationForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -189,6 +203,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\icon_warning.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\D2ModdinLogo.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

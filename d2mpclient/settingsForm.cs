@@ -1,4 +1,10 @@
-﻿using log4net.Appender;
+﻿// 
+// settinfsForm.cs
+// Created by ilian000 on 2014-06-08
+// Licenced under the Apache License, Version 2.0
+//
+
+using log4net.Appender;
 using log4net.Core;
 using System;
 using System.Collections.Generic;
@@ -61,7 +67,7 @@ namespace d2mp
             fDialog.Description = "Please select your Dota 2 directory.";
             if (fDialog.ShowDialog() == DialogResult.OK)
             {
-                if (File.Exists(Path.Combine(fDialog.SelectedPath, @"dota/gameinfo.txt")))
+                if (SteamFinder.checkDotaDir(fDialog.SelectedPath))
                 {
                     Settings.dotaDir = fDialog.SelectedPath;
                     refreshSettings();

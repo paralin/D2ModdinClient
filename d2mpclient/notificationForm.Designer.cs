@@ -33,6 +33,7 @@
             this.icon = new System.Windows.Forms.PictureBox();
             this.lblMsg = new System.Windows.Forms.Label();
             this.hideTimer = new System.Windows.Forms.Timer(this.components);
+            this.notifierProgress = new System.Windows.Forms.ProgressBar();
             ((System.ComponentModel.ISupportInitialize)(this.icon)).BeginInit();
             this.SuspendLayout();
             // 
@@ -71,12 +72,21 @@
             this.hideTimer.Interval = 5000;
             this.hideTimer.Tick += new System.EventHandler(this.hideTimer_Tick);
             // 
+            // notifierProgress
+            // 
+            this.notifierProgress.Location = new System.Drawing.Point(11, 68);
+            this.notifierProgress.Name = "notifierProgress";
+            this.notifierProgress.Size = new System.Drawing.Size(302, 16);
+            this.notifierProgress.TabIndex = 3;
+            this.notifierProgress.Visible = false;
+            // 
             // notificationForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(192)))), ((int)(((byte)(222)))));
             this.ClientSize = new System.Drawing.Size(326, 89);
             this.ControlBox = false;
+            this.Controls.Add(this.notifierProgress);
             this.Controls.Add(this.lblMsg);
             this.Controls.Add(this.icon);
             this.Controls.Add(this.lblTitle);
@@ -100,5 +110,6 @@
         private System.Windows.Forms.PictureBox icon;
         private System.Windows.Forms.Label lblMsg;
         public System.Windows.Forms.Timer hideTimer;
+        private System.Windows.Forms.ProgressBar notifierProgress;
     }
 }
