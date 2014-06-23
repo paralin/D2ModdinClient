@@ -43,7 +43,7 @@ namespace d2mp
     public class D2MP
     {
 #if DEBUG
-        private static string server = "ws://localhost:4502/ClientController";
+        private static string server = "ws://ddp2.d2modd.in:4502/ClientController";
 #else
         private static string server = "ws://ddp2.d2modd.in:4502/ClientController";
 #endif
@@ -61,7 +61,7 @@ namespace d2mp
         private static bool hasConnected = false;
         private static XSocketClient client;
         private static List<string> steamids;
-
+        private static System.Timers.Timer timer;
         private static void SteamCommand(string command)
         {
             Process.Start("explorer.exe", "steam://" + command);
@@ -95,7 +95,7 @@ namespace d2mp
 
             client.OnOpen += (sender, args) =>
             {
-                System.Timers.Timer timer = new System.Timers.Timer(new TimeSpan(0, 0, 30).TotalMilliseconds);
+                timer = new System.Timers.Timer(new TimeSpan(0, 0, 5).TotalMilliseconds);
                 timer.Elapsed += (o, args1) =>
                 {
                     log.Debug("Sending keep-alive...");
@@ -163,7 +163,7 @@ namespace d2mp
                         break;
                 }
             });
-            client.OnClose += (sender, args)=>
+            client.OnClose += (sender, args) =>
                 HandleClose();
         }
 
@@ -277,14 +277,14 @@ namespace d2mp
             ourDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             File.WriteAllText(Path.Combine(ourDir, "version.txt"), ClientCommon.Version.ClientVersion);
             var iconThread = new Thread(delegate()
-                                        {
-                                            using (icon = new ProcessIcon())
-                                            {
-                                                icon.Display();
-                                                icon.showNotification = ()=> notifier.Invoke(new MethodInvoker(()=>{ notifier.Fade(1); notifier.hideTimer.Start(); }));
-                                                Application.Run();
-                                            }
-                                        });
+            {
+                using (icon = new ProcessIcon())
+                {
+                    icon.Display();
+                    icon.showNotification = () => notifier.Invoke(new MethodInvoker(() => { notifier.Fade(1); notifier.hideTimer.Start(); }));
+                    Application.Run();
+                }
+            });
 
             iconThread.SetApartmentState(ApartmentState.STA);
             iconThread.Start();
@@ -292,14 +292,14 @@ namespace d2mp
             try
             {
                 var steam = new SteamFinder();
-                if (!steam.checkProtocol()) 
+                if (!steam.checkProtocol())
                 {
                     log.Error("Steam protocol not found. Trying to repair...");
                     var steamDir = steam.FindSteam(true, false);
                     var steamservicePath = Path.Combine(steamDir, @"bin\steamservice.exe");
                     if (File.Exists(steamservicePath))
                     {
-                        Process process = new Process() { StartInfo = { FileName = steamservicePath, Arguments = "/repair"} };
+                        Process process = new Process() { StartInfo = { FileName = steamservicePath, Arguments = "/repair" } };
                         try
                         {
                             process.Start();
@@ -387,6 +387,7 @@ namespace d2mp
                 }
                 catch (Exception ex)
                 {
+                    log.Debug(ex);
                     notifier.Notify(4, "Server error", "Can't connect to the lobby server!");
                     Thread.Sleep(5000);
                     HandleClose();
@@ -571,7 +572,8 @@ namespace d2mp
                         {
                             buffer = e.Result;
                         }
-                        catch{
+                        catch
+                        {
                             notifier.Notify(4, "Error downloading mod", "The connection forcibly closed by the remote host. Please try again.");
                             throw;
                         }
@@ -797,7 +799,7 @@ namespace d2mp
                 {
                     var commandKey = regKey.OpenSubKey(@"Shell\Open\Command");
                     if (commandKey != null && commandKey.GetValue(null) != null)
-                    return true;
+                        return true;
                 }
             }
             return false;
