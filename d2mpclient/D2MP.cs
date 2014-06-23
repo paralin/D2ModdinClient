@@ -284,6 +284,31 @@ namespace d2mp
             try
             {
                 var steam = new SteamFinder();
+                if (!steam.checkProtocol()) 
+                {
+                    log.Error("Steam protocol not found. Trying to repair...");
+                    var steamDir = steam.FindSteam(true, false);
+                    var steamservicePath = Path.Combine(steamDir, @"bin\steamservice.exe");
+                    if (File.Exists(steamservicePath))
+                    {
+                        Process process = new Process() { StartInfo = { FileName = steamservicePath, Arguments = "/repair"} };
+                        try
+                        {
+                            process.Start();
+                        }
+                        catch
+                        {
+                            log.Fatal("Could not repair protocol. Steamservice couldn't run. Elevation refused?");
+                        }
+                        process.WaitForExit();
+                        Restart();
+                    }
+                    else
+                    {
+                        log.Fatal("Could not repair protocol. Steam directory could not be found. Is steam installed? If so, please reinstall steam.");
+                    }
+
+                }
                 if (!Directory.Exists(Settings.steamDir) || !Directory.Exists(Settings.dotaDir) || !SteamFinder.checkDotaDir(Settings.dotaDir))
                 {
                     Settings.steamDir = steam.FindSteam(true);
@@ -639,7 +664,7 @@ namespace d2mp
             return Directory.Exists(dir) && File.Exists(Path.Combine(dir, "Steam.exe"));
         }
 
-        public string FindSteam(bool delCache)
+        public string FindSteam(bool delCache, bool useProtocol = true)
         {
             if (delCache) cachedLocation = "";
             if (delCache || cachedLocation == "")
@@ -663,32 +688,38 @@ namespace d2mp
                     return cachedLocation;
                 }
 
-                Process[] processes = Process.GetProcessesByName("STEAM");
-                if (processes.Length > 0)
+                if (useProtocol)
                 {
                     Process.Start("steam://");
-                }
-                int tries = 0;
-                while (tries < 20)
-                {
-                    if (processes.Length > 0)
+                    int tries = 0;
+                    while (tries < 20)
                     {
-                        cachedLocation = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 9);
-                        return cachedLocation;
+                        Process[] processes = Process.GetProcessesByName("STEAM");
+                        if (processes.Length > 0)
+                        {
+                            string dir = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 9);
+                            if (Directory.Exists(dir))
+                            {
+                                cachedLocation = dir;
+                                Settings.steamDir = dir;
+                                return cachedLocation;
 
-                    }
-                    else
-                    {
-                        Thread.Sleep(500);
-                        tries++;
+                            }
+                        }
+                        else
+                        {
+                            Thread.Sleep(500);
+                            tries++;
+                        }
                     }
                 }
+
                 return null;
             }
             return cachedLocation;
         }
 
-        public string FindDota(bool delCache)
+        public string FindDota(bool delCache, bool useProtocol = true)
         {
             if (!delCache && cachedDotaLocation != null) return cachedDotaLocation;
             string steamDir = FindSteam(false);
@@ -715,29 +746,30 @@ namespace d2mp
                     return dir;
                 }
             }
-            Process[] processes = Process.GetProcessesByName("DOTA");
-            if (processes.Length > 0)
+            if (useProtocol)
             {
                 Process.Start("steam://rungameid/570");
-            }
-            int tries = 0;
-            while (tries < 20)
-            {
-                if (processes.Length > 0)
+                int tries = 0;
+                while (tries < 20)
                 {
-                    string dir = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 8);
-                    processes[0].Kill();
-                    if (checkDotaDir(dir))
+                    Process[] processes = Process.GetProcessesByName("DOTA");
+                    if (processes.Length > 0)
                     {
-                        cachedLocation = dir;
-                        return cachedLocation;
-                    }
+                        string dir = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 8);
+                        processes[0].Kill();
+                        if (checkDotaDir(dir))
+                        {
+                            cachedLocation = dir;
+                            Settings.dotaDir = dir;
+                            return cachedLocation;
+                        }
 
-                }
-                else
-                {
-                    Thread.Sleep(500);
-                    tries++;
+                    }
+                    else
+                    {
+                        Thread.Sleep(500);
+                        tries++;
+                    }
                 }
             }
             return null;
@@ -745,6 +777,22 @@ namespace d2mp
         public static bool checkDotaDir(string path)
         {
             return Directory.Exists(path) && Directory.Exists(Path.Combine(path, "dota")) && File.Exists(Path.Combine(path, "dota/gameinfo.txt"));
+        }
+        public bool checkProtocol()
+        {
+            RegistryKey regKey = Registry.ClassesRoot;
+            regKey = regKey.OpenSubKey(@"steam");
+            if (regKey != null)
+            {
+                string protocolVal = regKey.GetValue(null).ToString();
+                if (protocolVal.Contains("URL:steam protocol"))
+                {
+                    var commandKey = regKey.OpenSubKey(@"Shell\Open\Command");
+                    if (commandKey != null && commandKey.GetValue(null) != null)
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
