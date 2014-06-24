@@ -17,7 +17,7 @@ namespace d2mp
 {
     static class modController
     {
-        private const string modUrlCheck = "http://beta.d2modd.in/data/mods";
+        private const string modUrlCheck = "http://d2modd.in/data/mods";
         private const string modCDN = "https://s3-us-west-2.amazonaws.com/d2mpclient/";
         private static List<RemoteMod> remoteMods = new List<RemoteMod>();
         public static List<ClientCommon.Data.ClientMod> clientMods = new List<ClientCommon.Data.ClientMod>();
