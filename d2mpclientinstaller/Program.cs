@@ -144,7 +144,7 @@ namespace D2MPClientInstaller
             {
                 try
                 {
-                    infos = client.DownloadString("http://ddp2.d2modd.in/clientver");
+                    infos = client.DownloadString("http://net1.d2modd.in/clientver");
                 }
                 catch (Exception e)
                 {
