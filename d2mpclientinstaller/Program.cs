@@ -174,8 +174,39 @@ namespace D2MPClientInstaller
                     Log("Downloading/unzipping new version...");
                     try
                     {
-                        using(WebClient client = new WebClient())
+                        using (WebClient client = new WebClient())
                             UnzipFromStream(client.OpenRead(info[1]), installdir);
+                    }
+                    catch (WebException ex)
+                    {
+                        if (ex.Status == WebExceptionStatus.ProtocolError)
+                        {
+                            var response = ex.Response as HttpWebResponse;
+                            if (response != null)
+                            {
+                                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                                {
+                                    Log(ex.ToString());
+                                    ShowError("You are unauthorized to download client");
+                                }
+                                if (response.StatusCode == HttpStatusCode.NotFound)
+                                {
+                                    Log(ex.ToString());
+                                    ShowError("File not found");
+                                }
+                                if (response.StatusCode == HttpStatusCode.RequestTimeout)
+                                {
+                                    Log(ex.ToString());
+                                    ShowError("Connection timeout");
+                                }
+                                return;
+                            }
+                            else
+                            {
+                                Log(ex.ToString());
+                                ShowError("Check your internet connection!");
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
