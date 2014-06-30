@@ -155,6 +155,8 @@ namespace d2mp
                 }
             });
 
+            client.OnError += (sender, args) => log.Error(string.Format("Controller [{0}] sent us error [{1}] on event [{2}].", args.controller, args.data, args.@event));
+
             client.OnClose += (sender, args) =>
             {
                 log.Info("Disconnected from the server.");
@@ -167,7 +169,7 @@ namespace d2mp
             var updaterPath = Path.Combine(Directory.GetParent(ourDir).FullName, "updater.exe");
             using (WebClient wc = new WebClient())
             {
-                wc.DownloadFile("https://s3-us-west-2.amazonaws.com/d2mpclient/D2MPUpdater.exe", updaterPath);
+                wc.DownloadFile("https://s3-us-west-2.amazonaws.com/d2mpclient/StartD2MP.exe", updaterPath);
                 Process.Start(updaterPath);
                 Application.Exit();
             }
@@ -175,6 +177,8 @@ namespace d2mp
 
         private static void HandleClose()
         {
+            if (shutDown) return;
+
             if (hasConnected)
             {
                 notifier.Notify(3, "Lost connection", "Attempting to reconnect...");
@@ -224,32 +228,42 @@ namespace d2mp
                     }
                     zipEntry = zipInputStream.GetNextEntry();
                 }
-            }
-            catch (Exception ex)
-            {
-                log.Error("Error extracted files to temporary folder.", ex);
-                notifier.Notify(4, "Mod installation failed", "Error extracted files to temporary folder.");
-            }
-
-            try
-            {
-                foreach (var file in Directory.EnumerateFiles(Path.Combine(outFolder, "temp"), "*", System.IO.SearchOption.AllDirectories))
-                {
-                    string destinationPath = Path.Combine(outFolder, file.Substring(outFolder.Length + 6, file.Length - outFolder.Length - 6));
-                    if (!Directory.Exists(Path.GetDirectoryName(destinationPath)))
-                        Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
-                    File.Move(file, destinationPath);
-                }
-                if (Directory.Exists(Path.Combine(outFolder, "temp")))
-                    Directory.Delete(Path.Combine(outFolder, "temp"), true);
 
                 result = true;
             }
+            catch (ZipException ex)
+            {
+                log.Error(string.Format("Error on zip file. File may be corrupted. [{0}]", ex.Message));
+                notifier.Notify(4, "Mod installation failed", "Downloaded mod may be corrupted. Try again.");
+            }
             catch (Exception ex)
             {
-                log.Error("Error moving extracted files from temporary folder.", ex);
-                notifier.Notify(4, "Mod installation failed", "Error moving extracted files from temporary folder.");
+                log.Error("Error extracting files to temporary folder.", ex);
+                notifier.Notify(4, "Mod installation failed", "Error extracting files to temporary folder.");
             }
+
+            if (result)
+            {
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(Path.Combine(outFolder, "temp"), "*", System.IO.SearchOption.AllDirectories))
+                    {
+                        string destinationPath = Path.Combine(outFolder, file.Substring(outFolder.Length + 6, file.Length - outFolder.Length - 6));
+                        if (!Directory.Exists(Path.GetDirectoryName(destinationPath)))
+                            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
+                        File.Move(file, destinationPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result = false;
+                    log.Error("Error moving extracted files from temporary folder.", ex);
+                    notifier.Notify(4, "Mod installation failed", "Error moving extracted files from temporary folder.");
+                }
+            }
+
+            if (Directory.Exists(Path.Combine(outFolder, "temp")))
+                Directory.Delete(Path.Combine(outFolder, "temp"), true);
 
             return result;
         }
@@ -404,7 +418,8 @@ namespace d2mp
                 {
                     Thread.Sleep(100);
                 }
-                client.Close();
+                if (client != null)
+                    client.Close();
             }
             catch (Exception ex)
             {
@@ -525,7 +540,24 @@ namespace d2mp
         {
             var op = state as DeleteMod;
             string targetDir = Path.Combine(d2mpDir, op.Mod.name);
+
             if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
+
+            //close dota before removing active mod, otherwise we might crash
+            if (activeMod != null && activeMod.name == op.Mod.name)
+            {
+                //if (Dota2Running()) KillDota2();
+
+                try
+                {
+                    Directory.Delete(modDir, true);
+                }
+                finally
+                {
+                    activeMod = GetActiveMod();
+                }
+            }
+
             log.Debug("Server/user requested that we delete mod " + op.Mod.name + ".");
             var msg = new OnDeletedMod
             {
@@ -576,45 +608,60 @@ namespace d2mp
                     wc.DownloadDataCompleted += (sender, e) =>
                     {
                         byte[] buffer = { 0 };
+                        bool success = false;
                         try
                         {
                             buffer = e.Result;
+                            success = true;
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            log.Error("Error while downloading", ex);
                             notifier.Notify(4, "Error downloading mod", "The connection forcibly closed by the remote host. Please try again.");
                         }
-                        notifier.Notify(2, "Extracting mod", "Download completed, extracting files...");
-                        Stream s = new MemoryStream(buffer);
-                        if (UnzipFromStream(s, targetDir))
-                        {
-                            refreshMods();
-                            log.Info("Mod installed!");
-                            notifier.Notify(1, "Mod installed",
-                                "The following mod has been installed successfully: " + op.Mod.name);
-                            //icon.DisplayBubble("Mod downloaded successfully: " + op.Mod.name + ".");
-                            var msg = new OnInstalledMod()
-                            {
-                                Mod = op.Mod
-                            };
-                            Send(JObject.FromObject(msg).ToString(Formatting.None));
-                            var existing = modController.clientMods.FirstOrDefault(m => m.name == op.Mod.name);
-                            if (existing != null) modController.clientMods.Remove(existing);
-                            modController.clientMods.Add(op.Mod);
 
-                            activeMod = GetActiveMod();
-                            if (activeMod.name == op.Mod.name)
+                        if (success)
+                        {
+                            //close dota before installing, otherwise we crash
+                            //if (activeMod != null && activeMod.name == op.Mod.name && Dota2Running())
+                            //{
+                            //    notifier.Notify(2, "Extracting mod", "Closing Dota");
+                            //    KillDota2();
+                            //}
+
+                            notifier.Notify(2, "Extracting mod", "Download completed, extracting files...");
+                            Stream s = new MemoryStream(buffer);
+                            if (UnzipFromStream(s, targetDir))
                             {
-                                try
+                                refreshMods();
+                                log.Info("Mod installed!");
+                                notifier.Notify(1, "Mod installed",
+                                    "The following mod has been installed successfully: " + op.Mod.name);
+                                //icon.DisplayBubble("Mod downloaded successfully: " + op.Mod.name + ".");
+                                var msg = new OnInstalledMod()
                                 {
-                                    Directory.Delete(modDir, true);
-                                }
-                                finally
+                                    Mod = op.Mod
+                                };
+                                Send(JObject.FromObject(msg).ToString(Formatting.None));
+                                var existing = modController.clientMods.FirstOrDefault(m => m.name == op.Mod.name);
+                                if (existing != null) modController.clientMods.Remove(existing);
+                                modController.clientMods.Add(op.Mod);
+
+                                activeMod = GetActiveMod();
+                                if (activeMod != null && activeMod.name == op.Mod.name)
                                 {
-                                    activeMod = GetActiveMod();
+                                    try
+                                    {
+                                        Directory.Delete(modDir, true);
+                                    }
+                                    finally
+                                    {
+                                        activeMod = GetActiveMod();
+                                    }
                                 }
                             }
                         }
+
                         isInstalling = false;
                     };
                     wc.DownloadDataAsync(new Uri(op.url));
@@ -713,12 +760,18 @@ namespace d2mp
 
                 //Get from registry?
                 RegistryKey regKey = Registry.CurrentUser;
-                regKey = regKey.OpenSubKey(@"Software\Valve\Steam");
-
-                if (regKey != null)
+                try
                 {
-                    cachedLocation = regKey.GetValue("SteamPath").ToString();
-                    return cachedLocation;
+                    regKey = regKey.OpenSubKey(@"Software\Valve\Steam");
+                    if (regKey != null)
+                    {
+                        cachedLocation = regKey.GetValue("SteamPath").ToString();
+                        return cachedLocation;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    D2MP.log.Error("Error trying to read dota path through registry", ex);
                 }
 
                 if (useProtocol)
@@ -730,13 +783,19 @@ namespace d2mp
                         Process[] processes = Process.GetProcessesByName("STEAM");
                         if (processes.Length > 0)
                         {
-                            string dir = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 9);
-                            if (Directory.Exists(dir))
+                            try
                             {
-                                cachedLocation = dir;
-                                Settings.steamDir = dir;
-                                return cachedLocation;
-
+                                string dir = processes[0].MainModule.FileName.Substring(0,
+                                    processes[0].MainModule.FileName.Length - 9);
+                                if (Directory.Exists(dir))
+                                {
+                                    cachedLocation = dir;
+                                    return cachedLocation;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                D2MP.log.Error("Error trying to read steam path through process", ex);
                             }
                         }
                         else
@@ -758,16 +817,22 @@ namespace d2mp
             string steamDir = FindSteam(false);
             //Get from registry
             RegistryKey regKey = Registry.LocalMachine;
-            regKey =
-                regKey.OpenSubKey(@"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 570");
-            if (regKey != null)
+            try
             {
-                string dir = regKey.GetValue("InstallLocation").ToString();
-                if (checkDotaDir(dir))
+                regKey = regKey.OpenSubKey(@"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 570");
+                if (regKey != null)
                 {
-                    cachedDotaLocation = regKey.GetValue("InstallLocation").ToString();
-                    return cachedDotaLocation;
+                    string dir = regKey.GetValue("InstallLocation").ToString();
+                    if (checkDotaDir(dir))
+                    {
+                        cachedDotaLocation = dir;
+                        return cachedDotaLocation;
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                D2MP.log.Error("Error trying to read dota path through registry", ex);
             }
 
             if (steamDir != null)
@@ -776,9 +841,10 @@ namespace d2mp
                 if (checkDotaDir(dir))
                 {
                     cachedDotaLocation = dir;
-                    return dir;
+                    return cachedDotaLocation;
                 }
             }
+
             if (useProtocol)
             {
                 Process.Start("steam://rungameid/570");
@@ -788,15 +854,20 @@ namespace d2mp
                     Process[] processes = Process.GetProcessesByName("DOTA");
                     if (processes.Length > 0)
                     {
-                        string dir = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 8);
-                        processes[0].Kill();
-                        if (checkDotaDir(dir))
+                        try
                         {
-                            cachedLocation = dir;
-                            Settings.dotaDir = dir;
-                            return cachedLocation;
+                            string dir = processes[0].MainModule.FileName.Substring(0, processes[0].MainModule.FileName.Length - 8);
+                            processes[0].Kill();
+                            if (checkDotaDir(dir))
+                            {
+                                cachedLocation = dir;
+                                return cachedLocation;
+                            }
                         }
-
+                        catch (Exception ex)
+                        {
+                            D2MP.log.Error("Error trying to read dota path through process", ex);
+                        }
                     }
                     else
                     {
