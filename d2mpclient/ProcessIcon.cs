@@ -157,7 +157,10 @@ namespace d2mp
 
         private void Uninstall_Click(object sender, EventArgs e)
         {
-            D2MP.Uninstall();
+            if (MessageBox.Show("Are you sure you want to uninstall D2Moddin from your computer? This will remove all mods and the mod manager itself.", "Uninstall confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                D2MP.Uninstall();
+            }
         }
 
         private void ModManager_Click(object sender, EventArgs e)

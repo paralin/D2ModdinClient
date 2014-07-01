@@ -1,4 +1,6 @@
-﻿namespace ClientCommon.Methods
+﻿using ClientCommon.Data;
+
+namespace ClientCommon.Methods
 {
     public class Shutdown
     {
@@ -30,5 +32,11 @@
         public const string Msg = "connectspectate";
         public string msg = Msg;
         public string ip { get; set; }
+    }
+    public class NotifyMessage
+    {
+        public const string Msg = "notifymessage";
+        public string msg = Msg;
+        public Message message { get; set; }
     }
 }
