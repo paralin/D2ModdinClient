@@ -29,25 +29,25 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(modManager));
             this.gbxMods = new System.Windows.Forms.GroupBox();
             this.modsGridView = new System.Windows.Forms.DataGridView();
             this.gbxModActions = new System.Windows.Forms.GroupBox();
+            this.btnUninstallAll = new System.Windows.Forms.Button();
             this.btnInstallAll = new System.Windows.Forms.Button();
             this.btnUpdateAll = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
             this.modMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.installModToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.setActiveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.updateModToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.removeModToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.name = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.version = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.author = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.status = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.btnUninstallAll = new System.Windows.Forms.Button();
-            this.setActiveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.gbxMods.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.modsGridView)).BeginInit();
             this.gbxModActions.SuspendLayout();
@@ -59,7 +59,7 @@
             this.gbxMods.Controls.Add(this.modsGridView);
             this.gbxMods.Location = new System.Drawing.Point(12, 12);
             this.gbxMods.Name = "gbxMods";
-            this.gbxMods.Size = new System.Drawing.Size(540, 141);
+            this.gbxMods.Size = new System.Drawing.Size(575, 168);
             this.gbxMods.TabIndex = 0;
             this.gbxMods.TabStop = false;
             this.gbxMods.Text = "Available Mods";
@@ -76,14 +76,14 @@
             this.version,
             this.author,
             this.status});
-            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle3.BackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle3.Font = new System.Drawing.Font("Segoe UI", 8.25F);
-            dataGridViewCellStyle3.ForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.modsGridView.DefaultCellStyle = dataGridViewCellStyle3;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Segoe UI", 8.25F);
+            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.modsGridView.DefaultCellStyle = dataGridViewCellStyle1;
             this.modsGridView.Location = new System.Drawing.Point(6, 19);
             this.modsGridView.MultiSelect = false;
             this.modsGridView.Name = "modsGridView";
@@ -93,7 +93,7 @@
             this.modsGridView.RowTemplate.ReadOnly = true;
             this.modsGridView.RowTemplate.Resizable = System.Windows.Forms.DataGridViewTriState.False;
             this.modsGridView.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.modsGridView.Size = new System.Drawing.Size(528, 113);
+            this.modsGridView.Size = new System.Drawing.Size(563, 143);
             this.modsGridView.TabIndex = 0;
             this.modsGridView.CellMouseDown += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.modsGridView_CellMouseDown);
             // 
@@ -103,12 +103,22 @@
             this.gbxModActions.Controls.Add(this.btnInstallAll);
             this.gbxModActions.Controls.Add(this.btnUpdateAll);
             this.gbxModActions.Controls.Add(this.btnRefresh);
-            this.gbxModActions.Location = new System.Drawing.Point(12, 160);
+            this.gbxModActions.Location = new System.Drawing.Point(12, 186);
             this.gbxModActions.Name = "gbxModActions";
             this.gbxModActions.Size = new System.Drawing.Size(432, 59);
             this.gbxModActions.TabIndex = 1;
             this.gbxModActions.TabStop = false;
             this.gbxModActions.Text = "Actions";
+            // 
+            // btnUninstallAll
+            // 
+            this.btnUninstallAll.Location = new System.Drawing.Point(324, 19);
+            this.btnUninstallAll.Name = "btnUninstallAll";
+            this.btnUninstallAll.Size = new System.Drawing.Size(100, 30);
+            this.btnUninstallAll.TabIndex = 3;
+            this.btnUninstallAll.Text = "Remove All";
+            this.btnUninstallAll.UseVisualStyleBackColor = true;
+            this.btnUninstallAll.Click += new System.EventHandler(this.btnUninstallAll_Click);
             // 
             // btnInstallAll
             // 
@@ -151,7 +161,7 @@
             this.removeModToolStripMenuItem});
             this.modMenuStrip.Name = "modMenuStrip";
             this.modMenuStrip.ShowImageMargin = false;
-            this.modMenuStrip.Size = new System.Drawing.Size(128, 120);
+            this.modMenuStrip.Size = new System.Drawing.Size(121, 98);
             // 
             // installModToolStripMenuItem
             // 
@@ -164,6 +174,13 @@
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
             this.toolStripSeparator1.Size = new System.Drawing.Size(117, 6);
+            // 
+            // setActiveToolStripMenuItem
+            // 
+            this.setActiveToolStripMenuItem.Name = "setActiveToolStripMenuItem";
+            this.setActiveToolStripMenuItem.Size = new System.Drawing.Size(120, 22);
+            this.setActiveToolStripMenuItem.Text = "Set Active";
+            this.setActiveToolStripMenuItem.Click += new System.EventHandler(this.setActiveToolStripMenuItem_Click);
             // 
             // updateModToolStripMenuItem
             // 
@@ -184,14 +201,14 @@
             this.name.HeaderText = "Name";
             this.name.Name = "name";
             this.name.ReadOnly = true;
-            this.name.Width = 150;
+            this.name.Width = 170;
             // 
             // version
             // 
             this.version.HeaderText = "Version";
             this.version.Name = "version";
             this.version.ReadOnly = true;
-            this.version.Width = 75;
+            this.version.Width = 80;
             // 
             // author
             // 
@@ -205,29 +222,13 @@
             this.status.HeaderText = "Status";
             this.status.Name = "status";
             this.status.ReadOnly = true;
-            // 
-            // btnUninstallAll
-            // 
-            this.btnUninstallAll.Location = new System.Drawing.Point(324, 19);
-            this.btnUninstallAll.Name = "btnUninstallAll";
-            this.btnUninstallAll.Size = new System.Drawing.Size(100, 30);
-            this.btnUninstallAll.TabIndex = 3;
-            this.btnUninstallAll.Text = "Remove All";
-            this.btnUninstallAll.UseVisualStyleBackColor = true;
-            this.btnUninstallAll.Click += new System.EventHandler(this.btnUninstallAll_Click);
-            // 
-            // setActiveToolStripMenuItem
-            // 
-            this.setActiveToolStripMenuItem.Name = "setActiveToolStripMenuItem";
-            this.setActiveToolStripMenuItem.Size = new System.Drawing.Size(127, 22);
-            this.setActiveToolStripMenuItem.Text = "Set Active";
-            this.setActiveToolStripMenuItem.Click += new System.EventHandler(this.setActiveToolStripMenuItem_Click);
+            this.status.Width = 110;
             // 
             // modManager
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(557, 229);
+            this.ClientSize = new System.Drawing.Size(599, 257);
             this.Controls.Add(this.gbxModActions);
             this.Controls.Add(this.gbxMods);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -257,11 +258,11 @@
         private System.Windows.Forms.ToolStripMenuItem updateModToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem removeModToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.Button btnUninstallAll;
+        private System.Windows.Forms.ToolStripMenuItem setActiveToolStripMenuItem;
         private System.Windows.Forms.DataGridViewTextBoxColumn name;
         private System.Windows.Forms.DataGridViewTextBoxColumn version;
         private System.Windows.Forms.DataGridViewTextBoxColumn author;
         private System.Windows.Forms.DataGridViewTextBoxColumn status;
-        private System.Windows.Forms.Button btnUninstallAll;
-        private System.Windows.Forms.ToolStripMenuItem setActiveToolStripMenuItem;
     }
 }

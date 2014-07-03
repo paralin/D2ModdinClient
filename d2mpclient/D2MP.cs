@@ -28,8 +28,6 @@ using System.Threading;
 using System.Windows.Forms;
 using ClientCommon.Data;
 using ClientCommon.Methods;
-using ICSharpCode.SharpZipLib.Core;
-using ICSharpCode.SharpZipLib.Zip;
 using log4net;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
@@ -197,41 +195,18 @@ namespace d2mp
         }
 
         //Pipe a zip download directly through the decompressor
-        private static bool UnzipFromStream(Stream zipStream, string outFolder)
+        private static bool UnzipWithTemp(Stream zipStream, string outFolder)
         {
-            bool result = false;
-
             try
             {
-                var zipInputStream = new ZipInputStream(zipStream);
-                ZipEntry zipEntry = zipInputStream.GetNextEntry();
-                while (zipEntry != null)
-                {
-                    String entryFileName = zipEntry.Name;
-                    log.Debug("CRC:" + zipEntry.Crc + " --> " + entryFileName);
-                    var buffer = new byte[4096];
-                    String fullZipToPath = Path.Combine(outFolder, "temp", entryFileName);
-                    string directoryName = Path.GetDirectoryName(fullZipToPath);
-                    if (directoryName.Length > 0)
-                    {
-                        Directory.CreateDirectory(directoryName);
-                        Thread.Sleep(30);
-                    }
-
-                    if (Path.GetFileName(fullZipToPath) != String.Empty)
-                    {
-                        using (FileStream streamWriter = File.Create(fullZipToPath))
-                        {
-                            StreamUtils.Copy(zipInputStream, streamWriter, buffer);
-                        }
-                    }
-                    zipEntry = zipInputStream.GetNextEntry();
-                }
+                string tempFolder = Path.Combine(outFolder, "temp");
+                UnZip.unzipFromStream(zipStream, tempFolder);
             }
             catch (Exception ex)
             {
-                log.Error("Error extracted files to temporary folder.", ex);
-                notifier.Notify(4, "Mod installation failed", "Error extracted files to temporary folder.");
+                log.Error("Error extracting files. Downloaded archive is possibly corrupt." , ex);
+                notifier.Notify(4, "Mod installation failed", "Error extracted files. Downloaded archive is corrupt.");
+                return false;
             }
 
             try
@@ -246,7 +221,7 @@ namespace d2mp
                 if (Directory.Exists(Path.Combine(outFolder, "temp")))
                     Directory.Delete(Path.Combine(outFolder, "temp"), true);
 
-                result = true;
+                return true;
             }
             catch (Exception ex)
             {
@@ -254,7 +229,7 @@ namespace d2mp
                 notifier.Notify(4, "Mod installation failed", "Error moving extracted files from temporary folder.");
             }
 
-            return result;
+            return false;
         }
 
         static void Send(string json)
@@ -556,7 +531,10 @@ namespace d2mp
             if (existing != null) modController.clientMods.Remove(existing);
             refreshMods();
         }
-
+        /// <summary>
+        /// Used to check if we already tried to redownload the mod.
+        /// </summary>
+        private static bool dlRetry;
         public static void InstallMod(object state)
         {
             var op = state as InstallMod;
@@ -606,8 +584,9 @@ namespace d2mp
                         }
                         notifier.Notify(2, "Extracting mod", "Download completed, extracting files...");
                         Stream s = new MemoryStream(buffer);
-                        if (UnzipFromStream(s, targetDir))
+                        if (UnzipWithTemp(s, targetDir))
                         {
+                            dlRetry = false;
                             refreshMods();
                             log.Info("Mod installed!");
                             notifier.Notify(1, "Mod installed",
@@ -622,6 +601,13 @@ namespace d2mp
                             if (existing != null) modController.clientMods.Remove(existing);
                             modController.clientMods.Add(op.Mod);
                         }
+                        else if(!dlRetry)
+                        {
+                            isInstalling = false;
+                            log.Error("Retrying to download mod...");
+                            dlRetry = true;
+                            InstallMod(op);
+                        }
                         isInstalling = false;
                     };
                     wc.DownloadDataAsync(new Uri(op.url));
@@ -631,7 +617,17 @@ namespace d2mp
             {
                 isInstalling = false;
                 log.Error("Failed to download mod " + op.Mod.name + ".", ex);
-                notifier.Notify(4, "Error downloading mod", "Failed to download mod " + op.Mod.name + ".");
+                if (!dlRetry)
+                {
+                    log.Debug("Retrying to download mod...");
+                    dlRetry = true;
+                    InstallMod(op);
+                }
+                else
+                {
+                    notifier.Notify(4, "Error downloading mod", "Failed to download mod " + op.Mod.name + ".");
+
+                }
                 return;
             }
         }

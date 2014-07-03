@@ -133,7 +133,16 @@ namespace d2mp
                 form.FormClosing += (s, e) => _textBox = null;
             }
             _textBox.Invoke((MethodInvoker)delegate {
-                _textBox.AppendText(loggingEvent.RenderedMessage + Environment.NewLine);
+                var exception = loggingEvent.GetExceptionString();
+                if (!String.IsNullOrEmpty(exception))
+                {
+                    _textBox.AppendText(loggingEvent.RenderedMessage + Environment.NewLine + exception + Environment.NewLine);
+
+                }
+                else
+                {
+                    _textBox.AppendText(loggingEvent.RenderedMessage + Environment.NewLine);
+                }
                 _textBox.SelectionStart = _textBox.Text.Length;
                 _textBox.ScrollToCaret();
             });
