@@ -32,9 +32,10 @@ namespace d2mp
         {
             modsGridView.Rows.Clear();
             modController.getLocalMods();
+            List<RemoteMod> remoteMods;
             try
             {
-                modController.getRemoteMods();
+                remoteMods = modController.getRemoteMods();
 
             }
             catch (Exception)
@@ -43,15 +44,16 @@ namespace d2mp
                 Close();
                 throw;
             }
+            List<RemoteMod> needsUpdate = modController.checkUpdates();
             var activeMod = D2MP.GetActiveMod();
-            foreach (var mod in modController.remoteMods)
+            foreach (var mod in remoteMods)
             {
                 int rowIndex = modsGridView.Rows.Add(new Object[] { mod.fullname, mod.version, mod.author, "Up to date" });
                 DataGridViewRow row = modsGridView.Rows[rowIndex];
                 row.Tag = mod;
                 if (activeMod != null && mod.name == activeMod.name)
                 {
-                    row.Cells[3].Value = "Active mod";
+                        row.Cells[3].Value = "Active mod";
                 }
                 if (mod.needsUpdate)
                 {
@@ -60,8 +62,7 @@ namespace d2mp
                     row.DefaultCellStyle = boldStyle;
                     row.Cells[3].Value = "Needs update";
                 }
-                else
-                {
+                else{
                     DataGridViewCellStyle normalStyle = new DataGridViewCellStyle();
                     //normalStyle.Font = new Font(modsGridView.Font, FontStyle.Regular);
                     modsGridView.Rows[rowIndex].DefaultCellStyle = normalStyle;
@@ -75,29 +76,18 @@ namespace d2mp
                 {
                     modsGridView.Rows[rowIndex].DefaultCellStyle.ForeColor = Color.Black;
                 }
+                //modsGridView.Rows[rowIndex].DefaultCellStyle = boldStyle;
             }
             modsGridView.CurrentRow.Selected = false;
-            int updCount = modController.remoteMods.Count(a => a.needsUpdate);
-            if (updCount > 0)
+            if (needsUpdate.Count > 0)
             {
-                btnUpdateAll.Text = String.Format("Update All ({0})", updCount);
+                btnUpdateAll.Text = String.Format("Update All ({0})", needsUpdate.Count);
                 btnUpdateAll.Enabled = true;
             }
             else
             {
                 btnUpdateAll.Text = "Update All";
                 btnUpdateAll.Enabled = false;
-            }
-            int installCount = modController.remoteMods.Count(a => a.needsInstall);
-            if (installCount > 0)
-            {
-                btnInstallAll.Text = String.Format("Install All ({0})", installCount);
-                btnInstallAll.Enabled = true;
-            }
-            else
-            {
-                btnInstallAll.Text = "Install All";
-                btnInstallAll.Enabled = false;
             }
         }
 
@@ -199,18 +189,6 @@ namespace d2mp
         private void ckbUpdate_CheckedChanged(object sender, EventArgs e)
         {
             Settings.autoUpdateMods = ckbUpdate.Checked;
-        }
-
-        private void modsGridView_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
-        {
-            var mod = (RemoteMod)modsGridView.SelectedRows[0].Tag;
-            Process.Start(mod.url);
-        }
-
-        private void authorWebsiteToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            var mod = (RemoteMod)modsGridView.SelectedRows[0].Tag;
-            Process.Start(mod.url);
         }
     }
 }

@@ -30,7 +30,6 @@ using ClientCommon.Data;
 using ClientCommon.Methods;
 using ICSharpCode.SharpZipLib.Zip;
 using log4net;
-using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -111,7 +110,7 @@ namespace d2mp
             };
             var json = JObject.FromObject(init).ToString(Formatting.None);
             Send(json);
-            ThreadPool.QueueUserWorkItem(new WaitCallback(a => AutoUpdateMods(false)));
+            AutoUpdateMods(false);
         }
 
         private static void SetupClient()
@@ -300,24 +299,18 @@ namespace d2mp
         {
             if (force || Settings.autoUpdateMods)
             {
-                try
-                {
-                    List<RemoteMod> lstRemote = modController.getRemoteMods();
+                List<RemoteMod> lstRemote = modController.getRemoteMods();
+                List<ClientMod> lstLocal = modController.getLocalMods();
 
-                    //find all local mods that aren't in the remote list
-                    modController.clientMods.FindAll(a => a.name != "checker" && lstRemote.All(b => b.name != a.name))
-                        .ForEach((mod) => DeleteMod(new DeleteMod() {Mod = mod}));
+                //find all local mods that aren't in the remote list
+                lstLocal.FindAll(a => a.name != "checker" && lstRemote.All(b => b.name != a.name))
+                    .ForEach((mod) => DeleteMod(new DeleteMod() {Mod = mod}));
 
-                    lstRemote.FindAll(a => a.needsUpdate)
-                        .ForEach(mod => modController.installQueue.Enqueue(mod));
+                lstRemote.FindAll(a => a.needsUpdate)
+                    .ForEach(mod => modController.installQueue.Enqueue(mod));
 
-                    if (modController.installQueue.Count > 0)
-                        modController.InstallQueued();
-                }
-                catch (Exception ex)
-                {
-                    log.Error("Could not auto update mods.", ex);
-                }
+                if (modController.installQueue.Count > 0)
+                    modController.InstallQueued();
             }
         }
 
@@ -510,7 +503,7 @@ namespace d2mp
                 if (Directory.Exists(modDir))
                     Directory.Delete(modDir, true);
                 log.Debug("Setting active mod to " + op.Mod.name + ".");
-                FileSystem.CopyDirectory(Path.Combine(d2mpDir, op.Mod.name), modDir);
+				CopyUtils.Copy(Path.Combine(d2mpDir, op.Mod.name), modDir);
                 File.WriteAllText(Path.Combine(modDir, "modname.txt"),
                     JObject.FromObject(op.Mod).ToString(Formatting.Indented));
                 notifier.Notify(NotificationType.Success, "Active mod", "The current active mod has been set to " + op.Mod.name + ".");
@@ -875,24 +868,37 @@ namespace d2mp
 
     public class SteamFinder
     {
+		#if !MONO
         private static readonly string[] knownLocations =
         {
             @"C:\Steam\", @"C:\Program Files (x86)\Steam\", @"C:\Program Files\Steam\"
         };
+		#endif
 
         private string cachedDotaLocation = "";
         private string cachedLocation = "";
 
+		#if !MONO
         private bool ContainsSteam(string dir)
         {
             return Directory.Exists(dir) && File.Exists(Path.Combine(dir, "Steam.exe"));
         }
+		#endif
 
         public string FindSteam(bool delCache, bool useProtocol = true)
         {
             if (delCache) cachedLocation = "";
             if (delCache || cachedLocation == "")
             {
+#if MONO
+				//Get their home directory
+				var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+				if(Directory.Exists(Path.Combine(homeDir, ".steam")))
+				{
+					cachedLocation = Path.Combine(homeDir, ".steam", "steam");
+					return cachedLocation;
+				}
+#else
                 foreach (string loc in knownLocations)
                 {
                     if (ContainsSteam(loc))
@@ -951,7 +957,7 @@ namespace d2mp
                         }
                     }
                 }
-
+#endif
                 return null;
             }
             return cachedLocation;
@@ -961,6 +967,19 @@ namespace d2mp
         {
             if (!delCache && cachedDotaLocation != null) return cachedDotaLocation;
             string steamDir = FindSteam(false);
+			#if MONO
+
+			if(steamDir != null)
+			{
+				var loc = Path.Combine(steamDir, "SteamApps", "common", "dota 2 beta");
+				if(checkDotaDir(loc))
+				{
+					cachedDotaLocation = loc;
+					return loc;
+				}
+			}
+
+			#else
             //Get from registry
             RegistryKey regKey = Registry.LocalMachine;
             try
@@ -1024,6 +1043,7 @@ namespace d2mp
                     }
                 }
             }
+			#endif
             return null;
         }
 

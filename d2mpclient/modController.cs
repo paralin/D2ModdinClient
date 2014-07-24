@@ -5,7 +5,6 @@
 //
 
 using System.Threading;
-using ClientCommon.Data;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
@@ -24,17 +23,17 @@ namespace d2mp
         private const string modUrlCheck = "http://d2modd.in/data/mods";
 #endif
         private const string modCDN = "https://s3-us-west-2.amazonaws.com/d2mpclient/";
-        public static List<RemoteMod> remoteMods = new List<RemoteMod>();
-        public static List<ClientMod> clientMods = new List<ClientMod>();
-        public static Queue<RemoteMod> installQueue = new Queue<RemoteMod>();
         private static bool installing = false;
+        private static List<RemoteMod> remoteMods = new List<RemoteMod>();
+        public static List<ClientCommon.Data.ClientMod> clientMods = new List<ClientCommon.Data.ClientMod>();
+        public static Queue<RemoteMod> installQueue = new Queue<RemoteMod>();
 
         static modController()
         {
             getLocalMods();
         }
 
-        public static List<ClientMod> getLocalMods()
+        public static List<ClientCommon.Data.ClientMod> getLocalMods()
         {
             clientMods.Clear();
             string[] dirs = Directory.GetDirectories(D2MP.d2mpDir);
@@ -63,37 +62,6 @@ namespace d2mp
             return clientMods;
         }
 
-        public static List<RemoteMod> getRemoteMods()
-        {
-            string modString = string.Empty;
-
-            using (var wc = new WebClient())
-                modString = wc.DownloadString(modUrlCheck);
-
-            JArray msg = JArray.Parse(modString);
-
-            lock (remoteMods)
-            {
-                remoteMods.Clear();
-                foreach (var mod in msg.Where(m => m["playable"].Value<bool>()))
-                {
-                    remoteMods.Add(new RemoteMod
-                    {
-                        name = mod["name"].Value<string>(),
-                        fullname = mod["fullname"].Value<string>(),
-                        version = mod["version"].Value<string>(),
-                        author = mod["author"].Value<string>(),
-                        url = mod["website"].Value<string>()
-                    });
-                }
-            }
-
-            checkUpdates();
-            checkAvailable();
-
-            return remoteMods;
-        }
-
         public static string ReadAddonVersion(string wholeAddonFile)
         {
             Match match = Regex.Match(wholeAddonFile, @"(addonversion)(\s+)(\d+\.)?(\d+\.)?(\d+\.)?(\*|\d+)",
@@ -112,17 +80,40 @@ namespace d2mp
             return version;
         }
 
+        public static List<RemoteMod> getRemoteMods()
+        {
+            JArray msg;
+            using (var wc = new WebClient())
+            {
+                msg = JArray.Parse(wc.DownloadString(modUrlCheck));
+                remoteMods.Clear();
+                foreach (var mod in msg.Where(m=>m["playable"].Value<bool>()))
+                {
+                    remoteMods.Add(new RemoteMod { name = mod["name"].Value<string>(), fullname = mod["fullname"].Value<string>(), version = mod["version"].Value<string>(), author = mod["author"].Value<string>() });
+                }
+            }
+            checkUpdates();
+            checkAvailable();
+            return remoteMods;
+        }
+
         /// <summary>
         /// Checks for mods with different version on server
         /// </summary>
         /// <returns>Returns a list of mods with different version on server</returns>
         public static List<RemoteMod> checkUpdates()
         {
-            foreach (var mod in remoteMods)
+            var results =
+                from rMod in remoteMods
+                where clientMods.Any(cMod => cMod.name == rMod.name && cMod.version != rMod.version)
+                select rMod;
+            List<RemoteMod> updateMods = results.ToList();
+            remoteMods.ForEach(rMod =>
             {
-                mod.needsUpdate = clientMods.Any(a => a.name == mod.name && a.version != mod.version);
-            }
-            return remoteMods.FindAll(a => a.needsUpdate);
+                if (updateMods.Any(uMod => rMod.name == uMod.name)) { rMod.needsUpdate = true; } else { rMod.needsUpdate = false; }
+            });
+
+            return updateMods;
         }
 
         /// <summary>
@@ -131,11 +122,16 @@ namespace d2mp
         /// <returns>Returns a list of mods which are not yet installed on the client</returns>
         public static List<RemoteMod> checkAvailable()
         {
-            foreach (var mod in remoteMods)
+            var results =
+              from rMod in remoteMods
+              where clientMods.All(cMod => cMod.name != rMod.name)
+              select rMod;
+            List<RemoteMod> availableMods = results.ToList();
+            remoteMods.ForEach(rMod =>
             {
-                mod.needsInstall = clientMods.All(a => a.name != mod.name);
-            }
-            return remoteMods.FindAll(a => a.needsInstall);
+                rMod.needsInstall = availableMods.Any(iMod => rMod.name == iMod.name);
+            });
+            return availableMods;
         }
 
         /// <summary>
