@@ -14,6 +14,7 @@ namespace d2mp
     {
         public static void unzipFromStream(Stream fileStream, string outFolder)
         {
+            ZipConstants.DefaultCodePage = 850;//force the use of this codepage to unzip. Multilingual (Latin-1) (Western European languages)
             ZipFile zipFile = new ZipFile(fileStream);
             if (zipFile.TestArchive(true))
             {

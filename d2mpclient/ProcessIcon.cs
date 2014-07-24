@@ -118,6 +118,16 @@ namespace d2mp
             item.Click += new EventHandler(Uninstall_Click);
             menu.Items.Add(item);
 
+            // Separator.
+            sep = new ToolStripSeparator();
+            menu.Items.Add(sep);
+
+            // Mod Manager.
+            item = new ToolStripMenuItem();
+            item.Text = "Mod Manual Install";
+            item.Click += new EventHandler(ModManualInstall_Click);
+            menu.Items.Add(item);
+
             // Mod Manager.
             item = new ToolStripMenuItem();
             item.Text = "Mod Manager";
@@ -148,6 +158,11 @@ namespace d2mp
             menu.Items.Add(item);
 
             return menu;
+        }
+
+        private void ModManualInstall_Click(object sender, EventArgs e)
+        {
+            D2MP.manualInstallMod();
         }
 
         private void Preferences_Click(object sender, EventArgs e)

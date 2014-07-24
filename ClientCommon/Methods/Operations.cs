@@ -6,6 +6,7 @@ namespace ClientCommon.Methods
     {
         public const string Msg = "close";
         public string msg = Msg;
+        public bool restart = false;
     }
 
     public class Uninstall
@@ -38,5 +39,11 @@ namespace ClientCommon.Methods
         public const string Msg = "notifymessage";
         public string msg = Msg;
         public Message message { get; set; }
+    }
+
+    public class UpdateMods
+    {
+        public const string Msg = "updatemods";
+        public string msg = Msg;
     }
 }

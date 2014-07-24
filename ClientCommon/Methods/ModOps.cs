@@ -40,4 +40,14 @@ namespace ClientCommon.Methods
         public string msg = Msg;
         public ClientMod Mod { get; set; }
     }
+
+    /// <summary>
+    /// Request server to provide mod install url
+    /// </summary>
+    public class RequestMod
+    {
+        public const string Msg = "reqmod";
+        public string msg = Msg;
+        public ClientMod Mod { get; set; }
+    }
 }

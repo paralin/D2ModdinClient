@@ -12,20 +12,49 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace d2mp
 {
+    public enum NotificationType : int
+    {
+        None = 0,
+        Success = 1,
+        Info = 2,
+        Warning = 3,
+        Error = 4,
+        Progress = 5,
+        TryAgain = 6
+    }
+
     public partial class notificationForm : Form
     {
-        private Color successBg = Color.FromArgb(67, 172, 106);
-        private Color infoBg = Color.FromArgb(91, 192, 222);
-        private Color warningBg = Color.FromArgb(233, 144, 2);
-        private Color errorBg = Color.FromArgb(240, 65, 36);
-        private Bitmap successIcon = new Bitmap(Properties.Resources.icon_success);
-        private Bitmap infoIcon = new Bitmap(Properties.Resources.icon_info);
-        private Bitmap warningIcon = new Bitmap(Properties.Resources.icon_warning);
-        private Bitmap errorIcon = new Bitmap(Properties.Resources.icon_error);
+        private static readonly Dictionary<NotificationType, Bitmap> NotificationIcons = new Dictionary<NotificationType, Bitmap>()
+        {
+            {NotificationType.None, null},
+            {NotificationType.Success, new Bitmap(Properties.Resources.icon_success)},
+            {NotificationType.Info, new Bitmap(Properties.Resources.icon_info)},
+            {NotificationType.Warning, new Bitmap(Properties.Resources.icon_warning)},
+            {NotificationType.Error, new Bitmap(Properties.Resources.icon_error)},
+            {NotificationType.Progress, new Bitmap(Properties.Resources.icon_info)},
+            {NotificationType.TryAgain, new Bitmap(Properties.Resources.icon_warning)}
+        };
+
+        private static readonly Dictionary<NotificationType, Color> NotificationColors = new Dictionary<NotificationType, Color>()
+        {
+            {NotificationType.None, Color.FromArgb(91, 192, 222)},
+            {NotificationType.Success, Color.FromArgb(67, 172, 106)},
+            {NotificationType.Info, Color.FromArgb(91, 192, 222)},
+            {NotificationType.Warning, Color.FromArgb(233, 144, 2)},
+            {NotificationType.Error, Color.FromArgb(240, 65, 36)},
+            {NotificationType.Progress, Color.FromArgb(91, 192, 222)},
+            {NotificationType.TryAgain, Color.FromArgb(233, 144, 2)}
+        };
+
+        private Action mTryAgain = null;
+        private Action mCancel = null;
+        private Action mDownload = null;
 
         static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
@@ -42,54 +71,68 @@ namespace d2mp
         public notificationForm()
         {
             InitializeComponent();
+            this.Size = this.MinimumSize;
         }
 
         /// <summary>
         /// Shows notification for a limited time.
         /// </summary>
-        /// <param name="type">Type of notification. 1: success, 2: info, 3: warning, 4: error, 5: progress</param>
+        /// <param name="type">Type of notification.</param>
         /// <param name="title">Title displayed on notification window</param>
         /// <param name="message">Message displayed on notification window</param>
-        public void Notify(int type, string title, string message)
+        public void Notify(NotificationType type, string title, string message)
         {
             this.InvokeIfRequired(() =>
             {
+                hideTimer.Stop();
+
                 notifierProgress.Hide();
-                switch (type)
-                {
-                    case 1:
-                        BackColor = successBg;
-                        icon.Image = successIcon;
-                        break;
-                    case 2:
-                        BackColor = infoBg;
-                        icon.Image = infoIcon;
-                        break;
-                    case 3:
-                        BackColor = warningBg;
-                        icon.Image = warningIcon;
-                        break;
-                    case 4:
-                        BackColor = errorBg;
-                        icon.Image = errorIcon;
-                        break;
-                    case 5:
-                        BackColor = infoBg;
-                        icon.Image = infoIcon;
-                        notifierProgress.Value = 0;
-                        notifierProgress.Show();
-                        break;
-                    default:
-                        BackColor = successBg;
-                        break;
-                }
+                pnlTryAgain.Hide();
+
+                BackColor = NotificationColors[type];
+                icon.Image = NotificationIcons[type];
+
                 lblTitle.Text = title;
                 lblMsg.Text = message;
                 this.Opacity = 1;
-                // Resets the timer -- Looks damn stupid
-                hideTimer.Stop();
-                if(type != 5)
-                    hideTimer.Start();
+                this.Size = this.MinimumSize;
+
+                switch (type)
+                {
+                    case NotificationType.Progress:
+                        notifierProgress.Value = 0;
+                        notifierProgress.Show();
+                        break;
+                    case NotificationType.TryAgain:
+                        pnlTryAgain.Show();
+                        this.Size = this.MaximumSize;
+                        break;
+                    default:
+                        hideTimer.Start();
+                        break;
+                }
+
+                SetupLocation();
+            });
+        }
+
+        /// <summary>
+        /// Open a Try Again notification
+        /// </summary>
+        /// <param name="title">Title displayed on notification window</param>
+        /// <param name="message">Message displayed on notification window</param>
+        /// <param name="TryAgain">Action when user clicks Try Again</param>
+        /// <param name="Cancel">Action when user clicks Cancel</param>
+        /// <param name="Download">Action when user clicks Download</param>
+        public void NotifyTryAgain(string title, string message, Action TryAgain, Action Cancel, Action Download)
+        {
+            this.InvokeIfRequired(() =>
+            {
+                mTryAgain = TryAgain;
+                mCancel = Cancel;
+                mDownload = Download;
+
+                Notify(NotificationType.TryAgain, title, message);
             });
         }
 
@@ -124,10 +167,52 @@ namespace d2mp
         private void Notification_Form_Load(object sender, EventArgs e)
         {
             SetWindowPos(this.Handle, HWND_TOPMOST, 0, 0, 0, 0, TOPMOST_FLAGS);
-            Location = new Point(Screen.PrimaryScreen.WorkingArea.Width - Width - 10, Screen.PrimaryScreen.WorkingArea.Height - Height - 10);
-            this.MaximumSize = this.Size;
-            this.MinimumSize = this.Size;
+            SetupLocation();
+            if (Environment.OSVersion.Version.Major < 6 || (Environment.OSVersion.Version.Major == 6 && Environment.OSVersion.Version.Minor <= 1))
+            {
+                FormBorderStyle = FormBorderStyle.None;
+            }
             hideTimer.Start();
+        }
+
+        private void SetupLocation()
+        {
+            Location = new Point(Screen.PrimaryScreen.WorkingArea.Width - Width - 10, Screen.PrimaryScreen.WorkingArea.Height - Height - 10);
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_NCLBUTTONDBLCLK = 0x00A3; // Prevent double click on border
+            const int WM_NCHITTEST = 0x0084; // Prevent resize cursors
+
+            switch (m.Msg)
+            {
+                case WM_NCLBUTTONDBLCLK:
+                    m.Result = IntPtr.Zero;
+                    return;
+                case WM_NCHITTEST:
+                    m.Result = IntPtr.Zero;
+                    return;
+            }
+            base.WndProc(ref m);
+        }
+
+        private void btnTryAgain_Click(object sender, EventArgs e)
+        {
+            Fade(0);
+            if (mTryAgain != null) mTryAgain();
+        }
+
+        private void btnCancel_Click(object sender, EventArgs e)
+        {
+            Fade(0);
+            if (mCancel != null) mCancel();
+        }
+
+        private void btnDownload_Click(object sender, EventArgs e)
+        {
+            Fade(0);
+            if (mDownload != null) mDownload();
         }
     }
 }
@@ -145,7 +230,7 @@ public static class ControlExtensions
             }
             action();
         }
-        catch ( ObjectDisposedException )
+        catch (ObjectDisposedException)
         {
             // Control is disposed.
         }

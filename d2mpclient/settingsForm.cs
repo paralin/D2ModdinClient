@@ -41,6 +41,7 @@ namespace d2mp
         {
             txtSteamDir.Text = Settings.steamDir;
             txtDotaDir.Text = Settings.dotaDir;
+            ckbShortcut.Checked = Settings.createShortcutAtStartup;
         }
 
         private void btnChangeSteamDir_Click(object sender, EventArgs e)
@@ -101,6 +102,16 @@ namespace d2mp
                 Hide();
                 e.Cancel = true;
             }
+        }
+
+        private void btnCreateShortcut_Click(object sender, EventArgs e)
+        {
+            ShortcutWriter.writeDesktopShortcut();
+        }
+
+        private void ckbShortcut_CheckedChanged(object sender, EventArgs e)
+        {
+            Settings.createShortcutAtStartup = ckbShortcut.Checked;
         }
 
     }

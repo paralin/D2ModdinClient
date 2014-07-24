@@ -29,52 +29,27 @@ namespace D2MPClientInstaller
 {
     static class Program
     {
-        private static bool doLog = false;
+        private const bool doLog = true;
+        private const string logFile = "d2mpinstaller.log";
+        private static string ourDir;
         private static string installdir;
         static void Log(string text)
         {
             if (doLog)
-                File.AppendAllText("d2mpinstaller.log", text + "\n");
+                File.AppendAllText(Path.Combine(ourDir, logFile), text + "\n");
         }
 
         static void DeleteOurselves(string path)
         {
             ProcessStartInfo info = new ProcessStartInfo("cmd.exe");
-            info.Arguments = "/C timeout 3 & Del \"" + path+"\"";
+            info.Arguments = "/C timeout 2 & Del \"" + path+"\"";
+
+            if (doLog)
+                info.Arguments += " & Del \"" + Path.Combine(Path.GetDirectoryName(path), logFile) + "\"";
+
             info.CreateNoWindow = true;
-            info.RedirectStandardOutput = true;
             info.UseShellExecute = false;
             Process.Start(info);
-        }
-
-        static void UnzipFromStream(Stream zipStream, string outFolder)
-        {
-            ZipInputStream zipInputStream = new ZipInputStream(zipStream);
-            ZipEntry zipEntry = zipInputStream.GetNextEntry();
-            while (zipEntry != null)
-            {
-                String entryFileName = zipEntry.Name;
-                // to remove the folder from the entry:- entryFileName = Path.GetFileName(entryFileName);
-                // Optionally match entrynames against a selection list here to skip as desired.
-                // The unpacked length is available in the zipEntry.Size property.
-
-                byte[] buffer = new byte[4096];     // 4K is optimum
-
-                // Manipulate the output filename here as desired.
-                String fullZipToPath = Path.Combine(outFolder, entryFileName);
-                string directoryName = Path.GetDirectoryName(fullZipToPath);
-                if (directoryName.Length > 0)
-                    Directory.CreateDirectory(directoryName);
-
-                // Unzip file in buffered chunks. This is just as fast as unpacking to a buffer the full size
-                // of the file, but does not waste memory.
-                // The "using" will close the stream even if an exception occurs.
-                using (FileStream streamWriter = File.Create(fullZipToPath))
-                {
-                    StreamUtils.Copy(zipInputStream, streamWriter, buffer);
-                }
-                zipEntry = zipInputStream.GetNextEntry();
-            }
         }
 
         static void LaunchD2MP(string path)
@@ -131,6 +106,16 @@ namespace D2MPClientInstaller
         [STAThread]
         static void Main()
         {
+            ourDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                string msg = string.Format("Unhandled exception: {0}", args.ExceptionObject);
+                Log(msg);
+                ShowError(msg);
+                Environment.Exit(1);
+            };
+
             Log("Finding install directories...");
             installdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "D2MP");
             var verpath = Path.Combine(installdir, "version.txt");
@@ -174,13 +159,19 @@ namespace D2MPClientInstaller
                     Log("Downloading/unzipping new version...");
                     try
                     {
+                        var dlPath = Path.Combine(installdir, "archive.zip");
                         using(WebClient client = new WebClient())
-                            UnzipFromStream(client.OpenRead(info[1]), installdir);
+                        {
+                            client.DownloadFile(info[1], dlPath);
+                        }
+                        d2mp.UnZip.unzipFromStream(File.OpenRead(dlPath), installdir);
                     }
                     catch (Exception ex)
                     {
                         Log(ex.ToString());
                         ShowError("Problem downloading new D2Moddin launcher: " + ex);
+                        ShowError("You can manually download the client from " + info[1]);
+                        return;
                     }
                 }
             }
@@ -194,6 +185,7 @@ namespace D2MPClientInstaller
                 {
                     Log("Problem uninstalling D2MP: " + ex);
                 }
+                return;
             }
 
             Log("Launching D2MP...");
@@ -209,7 +201,6 @@ namespace D2MPClientInstaller
             {
                 Log("Problem deleting ourselves: " + ex);
             }
-            return;
         }
     }
 }
