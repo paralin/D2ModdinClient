@@ -404,6 +404,21 @@ namespace d2mp
 
                 if (!Directory.Exists(addonsDir))
                     Directory.CreateDirectory(addonsDir);
+                else
+                {
+                    var contents = Directory.GetDirectories(addonsDir);
+                    foreach (var dir in contents)
+                    {
+                        try
+                        {
+                            Directory.Delete(dir, true);
+                        }
+                        catch (Exception ex)
+                        {
+                            log.Error("Can't delete addon dir, "+dir, ex);
+                        }
+                    }
+                }
                 if (!Directory.Exists(d2mpDir))
                     Directory.CreateDirectory(d2mpDir);
                 if (!Directory.Exists(modDir))
